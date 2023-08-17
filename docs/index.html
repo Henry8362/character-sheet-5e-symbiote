@@ -1,1 +1,134 @@
-<h1>This is where sheets will be added</h1>
+<html>
+<head>
+<script  type="application/javascript" src="\brains.js"></script>
+<script type="application/javascript" src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="app">
+    <div id="sheet-container">
+        <div v-for="(character, index) in characters" :key="index">
+          <form :id="character.id" class="parchment">
+            <div class="parchment_header">
+            <h1>{{ character.name }}</h1>
+            </div>
+            <h3>Basics</h3>
+            <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'B'" class="section-header">
+                    <label>{{ key }}</label>  
+                    <input type="text" :key="key" :name="key" v-model="value.value" />
+            </div>
+            <h3>Core Stats</h3>
+            <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'C'" class="section-header">
+                <label>{{ key }}</label>  
+                <input type="text" :key="key" :name="key" v-model="value.value" />
+                <!-- another field is needed here, which is calculated from the value of the stat, using the DND formula -->
+                <label>Modifier</label>
+                <span>{{ calculateModifier(value.value) }}</span>
+             </div>
+             <h3>Skills</h3>
+             <div v-for="(value, key) in skills" :key="key" class="section-skills">
+                <label>{{ value.name }}</label>  
+                <span></span>
+                <!-- another field is needed here, which is calculated from the value of the stat, using the DND formula -->
+              </div>
+
+            <button @click="updateSheet(character.sheets.id)">Update</button>
+          </form>
+        </div>
+</div>
+</div>
+</body>
+</html>
+<script type="application/javascript">
+    const VueApp = new Vue({
+      el: '#app',
+      data: {
+        message: 'My Sheets',
+        characters: [],
+        skills: [],
+      },
+      methods: {
+    calculateModifier(abilityScore) {
+      return Math.floor((abilityScore - 10) / 2);
+    }
+    }
+  
+    });
+    
+    function UpdateSheet(id) {
+    
+    }
+    function processSheet(data, mappings) {
+
+        // This function will go through each data.characters.sheets and map the keys to the correct type, for logic in vue JS, e.g. if the key is "class" then the type is "B", for "Basic" and so on.
+        // This will allow us to use the same logic for each sheet, and not have to worry about the type of sheet we are dealing with.
+        // we will edit the data.characters.sheets object in place, and return it.
+        // for each character data[x]
+        data.forEach(function (character, index) {
+        // First we need to get the keys of the data.characters.sheets object, and then we can loop through them.
+        var keys = Object.keys(character.sheet);
+        for (var i = 0; i < keys.length; i++) {
+            // Now we have the keys, we can loop through them and check the mappings object to see what type of key it is.
+            var key = keys[i];
+            // we need to match this key to the mappings object, and get the type, this is not the index of the mappings array, but we need to exclude the "skills key"
+            
+            var type = mappings.find((element) => element.sheets_field_name == key);
+            if (type == undefined) {
+            // if the type is undefined, then we need to add a field_type of "U" for "Unknown"
+            type = "U";
+            }
+            else {
+            type = type.field_type;
+            }
+            // now we need to add in the type to the data.characters.sheets object.
+            data[index].sheet[key] = {
+            type: type,
+            value: character.sheet[key],
+            };
+        }
+
+    });
+    // push data into vue app.
+    VueApp.characters = data;
+    
+    };
+
+    async function main() {
+        var data = await initSheet();
+        var mappings = await fetchMappings();
+        var skills = await fetchSkills();
+        VueApp.skills = skills;
+        processSheet(data.characters, mappings);
+      }
+    main();
+    
+</script>
+<style>
+    * {
+    
+        font-family: 'IM Fell English SC', serif;
+}
+
+.parchment {
+
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  margin: 2em 0;
+    padding: 4em;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.parchment_header {
+
+    font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+    
+}
+</style>
