@@ -17,17 +17,17 @@
             <div>
             <h1 class="text-4xl underline mb-1">{{ character.name }}</h1>
             <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'B'" class="mb-1">
-                    <label>{{ key }}:</label>  
+                    <label>{{ removeUnderline(key) }}:</label>  
                     <input type="text" :key="key" :name="key" v-model="value.value" />
             </div>
         </div>
         <div></div>
         <div>
             <span v-if="character.picture">  
-            <img class="img-border" width="200px" height="200px" v-if="character.picture ":src="character.picture" alt="Image" />  
+            <img class="img-border" width="275px" height="275px" v-if="character.picture ":src="character.picture" alt="Image" />  
             </span> 
             <span v-else>
-            <img class="img-border" width="200px" height="200px" src="https://via.placeholder.com/250x250" alt="Image" />
+            <img class="img-border" width="275px" height="275px" src="https://via.placeholder.com/250x250" alt="Image" />
             </span>
             </div>
             </div>
@@ -44,6 +44,7 @@
                 <label class="w-full">Modifier</label>
                 <span>{{ calculateModifier(value.value) }}</span>
              </div>
+             <div class="bg-gray-200 p-2 w-3/5 shadow shadow-outline shadow-inner border mb-2">
              <b class="underline">Skills</b>
              <div v-for="(value, key) in skills" :key="key" class="section-skills">
                 <label>{{ value.name }}</label> 
@@ -52,6 +53,15 @@
               <span v-if="findSkillProf(character.sheet.skills.value, value.name)">| <b>proficient</b></span>
                 </span>
                 <!-- another field is needed here, which is calculated from the value of the stat, using the DND formula -->
+              </div>
+            </div>
+              </div>
+              <div class="mt-2 w-full">
+                <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'M'" class="section-header mb-1">
+                    <div class="flex flex-col">
+                    <label>{{ removeUnderline(key) }}</label>  
+                    <input class="w-2/3" type="text" :key="key" :name="key" v-model="value.value" />
+                    </div>
               </div>
               </div>
               <div class="w-full">
@@ -62,7 +72,7 @@
                 </div>
               </div>
               </div>
-            <button @click="updateSheet(character.sheets.id)">Update</button>
+            <button class="bg-blue-500 w-24 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @click="updateSheet(character.sheets.id)">Update</button>
           </form>
         </div>
 </div>
