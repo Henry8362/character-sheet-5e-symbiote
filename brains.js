@@ -29,3 +29,18 @@ async function fetchSkills() {
     return data;
   
 }
+
+async function fetchBlocks() {
+     
+      // if local storage "statblocks" is empty, make fetch request to get the character sheet data
+      const cachedData = localStorage.getItem('statblocks');
+      if (cachedData) {
+        return JSON.parse(cachedData);
+      }
+      else {
+      var response = await fetch(`http://localhost:3000/StatBlocks`)
+      var data = await response.json();
+      localStorage.setItem('statblocks', JSON.stringify(data));
+      return data;
+      }
+  }

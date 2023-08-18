@@ -10,7 +10,14 @@
 </head>
 <body>
 <div id="app" class="w-full">
-    <div id="sheet-container" class="flex flex-col w-full items-center justify-center">
+  <nav class="bg-blue-500 p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <a href="#" class="text-white hover:underline pr-4" @click="showSection('sheets')">Sheets</a>
+        <a href="#" class="text-white hover:underline pr-4" @click="showSection('blocks')">Blocks</a>
+        <a href="#" class="text-white hover:underline" @click="showSection('admin')">Admin</a>
+    </div>
+</nav>
+    <div v-show="activeSection === 'sheets'" id="sheet-container" class="flex flex-col w-full items-center justify-center">
         <div  class="w-4/6" v-for="(character, index) in characters" :key="index">
           <form :id="character.id" class="parchment w-full">
             <div class="parchment_header flex justify-between">
@@ -21,7 +28,6 @@
                     <input type="text" :key="key" :name="key" v-model="value.value" />
             </div>
         </div>
-        <div></div>
         <div>
             <span v-if="character.picture">  
             <img class="img-border" width="275px" height="275px" v-if="character.picture ":src="character.picture" alt="Image" />  
@@ -76,6 +82,79 @@
           </form>
         </div>
 </div>
+<div v-show="activeSection === 'blocks'" id="sheet-container" class="flex flex-col w-full items-center justify-center">
+  <div class="w-3/6 mt-3">
+  <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
+  <div class="relative">
+      <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+          </svg>
+      </div>
+      <input  @input="performSearch" type="search" id="default-search" class="block w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search for a block..." required>
+  </div>
+</div>
+<div class="flex w-3/6">
+  <ul id="block-list" class="w-3/6 mt-3">
+      <li class="text-3xl underline mb-1">Statblocks:</li>
+      <li v-for="(block, index) in filteredblocks" :key="index" class="text-2xl mb-1 border-b-4 border-black">
+        <a href="#" @click="loadBlock(block.id)">{{ block.name }}</a>
+      </li>
+</ul>
+<div v-if="isNotEmptyObject(loadedBlock)" id="loaded-block" class="w-3/6 mt-3 ml-3 stat_block flex flex-col">
+   <span class="font-bold text-4xl underline">{{ loadedBlock.name }}</span>
+   <span class="text-2xl">{{ loadedBlock.size }} {{ loadedBlock.type }}, {{ loadedBlock.alignment }}</span>
+    <span class="text-1xl">Armor Class {{ loadedBlock.armor_class }}</span>
+    <span class="text-1xl">Hit Points {{ loadedBlock.hit_points }}</span>
+    <span class="text-1xl">Speed {{ loadedBlock.speed }}</span>
+    <hr />
+    <div class="flex flex-row">
+    <div class="flex flex-col p-2">
+    <span class="text-1xl">STR</span>
+    <span class="text-1xl">{{ loadedBlock.strength }} ({{ calculateModifier(loadedBlock.strength)}})</span>
+    </div>
+    <div class="flex flex-col p-2">
+      <span class="text-1xl">DEX</span>
+      <span class="text-1xl">{{ loadedBlock.dexterity }} ({{ calculateModifier(loadedBlock.dexterity)}})</span>
+      </div>
+      <div class="flex flex-col p-2">
+        <span class="text-1xl">CON</span>
+        <span class="text-1xl">{{ loadedBlock.constitution }} ({{ calculateModifier(loadedBlock.constitution)}})</span>
+        </div>
+        <div class="flex flex-col p-2">
+          <span class="text-1xl">INT</span>
+          <span class="text-1xl">{{ loadedBlock.intelligence }} ({{ calculateModifier(loadedBlock.intelligence)}})</span>
+          </div>
+          <div class="flex flex-col p-2">
+            <span class="text-1xl">WIS</span>
+            <span class="text-1xl">{{ loadedBlock.wisdom }} ({{ calculateModifier(loadedBlock.wisdom)}})</span>
+            </div>
+            <div class="flex flex-col p-2">
+              <span class="text-1xl">CHA</span>
+              <span class="text-1xl">{{ loadedBlock.charisma }} ({{ calculateModifier(loadedBlock.charisma)}})</span>
+              </div>
+    </div>
+    <hr />
+    <span class="text-1xl"><b>Senses</b> {{ loadedBlock.senses }}</span>
+    <span class="text-1xl"><b>Languages</b> {{ loadedBlock.languages }}</span>
+    <span class="text-1xl"><b>Challenge</b> {{ loadedBlock.challenge_rating }}</span>
+    <hr />
+    <template v-for="(array) in loadedBlock.special_abilities">
+      <template v-for="(values, keys) in array">
+    <span class="text-1xl mt-1"><b>{{ keys }}: </b>{{ values }}</span>
+    </template> 
+    </template>
+    <hr />
+    <span class="text-2xl mt-1 mb-1 border-b-2 border-black">Actions</span>
+    <template v-for="(array) in loadedBlock.actions">
+      <template v-for="(values, keys) in array">
+    <span class="text-1xl mt-1"><b>{{ keys }}: </b>{{ values }}</span>
+    </template> 
+    </template>
+  </div>
+</div>
+</div>
+</div>
 </div>
 </body>
 </html>
@@ -86,7 +165,18 @@
         message: 'My Sheets',
         characters: [],
         skills: [],
+        blocks: [],
+        activeSection: 'blocks', // Default active section
+        searchQuery: '',
+        loadedBlock: {},
       },
+      computed: {
+      filteredblocks() {
+      return this.blocks.filter(block =>
+        block.name.toLowerCase().includes(this.searchQuery.toLowerCase())
+      );
+    }
+  },
       methods: {
     calculateModifier(abilityScore) {
       return Math.floor((abilityScore - 10) / 2);
@@ -100,6 +190,24 @@
     removeUnderline(string) {
       return string.replace(/_/g, ' ');
     },
+    showSection(section) {
+                    this.activeSection = section;
+    },
+    performSearch(event) {
+      this.searchQuery = event.target.value;
+    },
+    loadBlock(id) {
+      // get the block from the blocks array
+      var block = this.blocks.find(block => block.id === id);
+      // set the loadedBlock to the block
+      this.loadedBlock = block;
+      
+
+    },
+    isNotEmptyObject(value) {
+      // check if the value is an object and it isn't empty
+      return typeof value === 'object' && Object.keys(value).length > 0;
+    }
     }
   
     });
@@ -149,7 +257,10 @@
         var data = await initSheet();
         var mappings = await fetchMappings();
         var skills = await fetchSkills();
+        var blocks = await fetchBlocks();
         VueApp.skills = skills;
+        VueApp.blocks = blocks;
+
         processSheet(data.characters, mappings);
       }
     main();
@@ -159,6 +270,16 @@
     * {
     
         font-family: 'IM Fell English SC', serif;
+}
+
+.stat_block {
+
+  background-color: #f5f5f5;
+    border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 3em;
+
 }
 
 .parchment {
