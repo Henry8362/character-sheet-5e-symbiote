@@ -1,0 +1,30 @@
+{
+    "manifestVersion": 1,
+    "name": "5E Character Sheets",
+    "entryPoint": "/index.html",
+	"api": {
+		"version": "0.1",
+		"initTimeout": 10,
+		"subscriptions": {
+      "symbiote": {
+        "onStateChangeEvent": "onStateChangeEvent"
+      },
+      "picking": {
+        "onPickingEvent": "handlePickingEvent"
+      },
+      "dice": {
+        "onRollResults": "rolledDice"
+      }
+      
+      
+    }
+  },
+  "environment": {
+    "webViewBackgroundColor": "#000000",
+    "extras": [
+      "fonts",
+      "icons",
+      "colorStyles"
+    ]
+  }
+}
