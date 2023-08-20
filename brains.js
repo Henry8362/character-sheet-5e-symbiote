@@ -1,7 +1,7 @@
 // This file will be loaded into the browser along with the index.html file and make the character sheets work.
 // It will contact an external service and make a fetch request to pull in a JSON array of data for the character sheet, which will then load into the page.
 // Called when page is loaded
-async function initSheet() {
+async function initSheet(e) {
 
   // Get the player characters associated with player who has the symbiote, this will be by the unique ID of the model.
   //let $playercharacters = TS.creatures.getCreaturesOwnedByPlayer;
@@ -9,7 +9,10 @@ async function initSheet() {
   //$playercharacters.forEach(function (character) {
     // get the ID if unique
    // if (character.isUnique) {
-    let id = 1;
+    console.log(e);
+    let id = e.id;
+
+    //let id = "782831a7-83d4-49a9-92e6-b61646592d24";
     // make fetch request to get the character sheet data
     var response = await fetch(`http://localhost:3000/Players/${id}`)
     var data = await response.json();
@@ -44,3 +47,62 @@ async function fetchBlocks() {
       return data;
       }
   }
+
+async function fetchItems() {
+
+  var response = await fetch(`http://localhost:3000/Items`)
+  var data = await response.json();
+  return data;
+
+}
+
+
+async function  getPlayers() {
+
+  players = await TS.players.getPlayersInThisCampaign();
+  return players;
+  //await TS.creatures.getUniqueCreaturesInThisCampaign();
+
+}
+
+async function getUser() {
+
+  player = await TS.players.whoAmI();
+  return player;
+
+
+}
+
+async function getUsersCreatures(e) {
+
+
+  creatures = await TS.creatures.getCreaturesOwnedByPlayer(e);
+  creatures = TS.creatures.getMoreInfo(creatures);
+  return creatures;
+
+}
+
+async function getUsersResources(e) {
+
+  // for the given player, we make an API query to get the resources that player has access to.
+  // we then return that data to the calling function.
+  console.log(e);
+  var response = await fetch(`http://localhost:3000/Players/${e}/Resources`);
+  var data = await response.json();
+  return data;
+}
+
+async function createSheet(id, data) {
+  console.log(data);
+  var response = await fetch(`http://localhost:3000/Players/${id}/MakeSheet`, {
+    method: 'POST', // Use 'PUT' if updating instead of creating
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+
+
+});
+var data = await response.json();
+return data;
+};

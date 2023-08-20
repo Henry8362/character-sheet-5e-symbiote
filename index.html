@@ -1,6 +1,6 @@
 <html>
 <head>
-<script  type="application/javascript" src="\brains.js"></script>
+<script  type="application/javascript" src="brains.js"></script>
 <script type="application/javascript" src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,45 +12,58 @@
 <div id="app" class="w-full">
   <nav class="bg-blue-500 p-4">
     <div class="max-w-7xl mx-auto flex justify-between items-center">
-        <a href="#" class="text-white hover:underline pr-4" @click="showSection('sheets')">Sheets</a>
-        <a href="#" class="text-white hover:underline pr-4" @click="showSection('blocks')">Blocks</a>
-        <a href="#" class="text-white hover:underline" @click="showSection('admin')">Admin</a>
+        <a href="#" class="text-white font-semibold hover:underline pr-4" @click="showSection('sheets')">Sheets</a>
+        <a href="#" class="text-white font-semibold hover:underline pr-4" @click="showSection('blocks')">Blocks</a>
+        <a href="#" class="text-white font-semibold hover:underline" @click="showSection('resources')">Resources</a>
+        <a href="#" class="text-white font-semibold hover:underline" @click="showSection('admin')">Admin</a>
+        <a href="#" class="text-white font-semibold hover:underline" @click="showSection('itemDB')">Items</a>
     </div>
 </nav>
     <div v-show="activeSection === 'sheets'" id="sheet-container" class="flex flex-col w-full items-center justify-center">
-        <div  class="w-4/6" v-for="(character, index) in characters" :key="index">
-          <form :id="character.id" class="parchment w-full">
+      <div class="w-11/12 text-white text-lg mt-3 font-bold">My Unique Characters</div>
+      <div class="w-11/12">
+        <button class="bg-blue-500 w-3/6 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @click="refreshCreatures()">Refresh Creatures</button>
+     <div class="text-white flex flex-col " v-for="(critter, index) in playersCreatures">
+        <span> {{ critter.name }}</span>
+        <button class="bg-blue-500 w-3/6 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" v-if="hasSheet(critter.id)" @click="createSheet(critter.id)">Create Sheet</button>
+        <button class="bg-blue-500 w-3/6 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" v-else @click="setActiveSheet(critter.id)">View Sheet</button>
+        </div>
+        <div class="w-12/12" v-for="(character, index) in characters" :key="index" v-show="activeSheet == character.id">
+          <form :id="character.id" class="parchment mt-3 w-full">
             <div class="parchment_header flex justify-between">
-            <div>
+            <div class="mr-4">
             <h1 class="text-4xl underline mb-1">{{ character.name }}</h1>
             <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'B'" class="mb-1">
                     <label>{{ removeUnderline(key) }}:</label>  
                     <input type="text" :key="key" :name="key" v-model="value.value" />
             </div>
         </div>
-        <div>
+        <div class="ml-4">
             <span v-if="character.picture">  
-            <img class="img-border" width="275px" height="275px" v-if="character.picture ":src="character.picture" alt="Image" />  
+            <img class="img-border" v-if="character.picture ":src="character.picture" alt="Image" />  
             </span> 
             <span v-else>
-            <img class="img-border" width="275px" height="275px" src="https://via.placeholder.com/250x250" alt="Image" />
+            <img class="img-border" src="https://placehold.co/275x275" alt="Image" />
             </span>
             </div>
             </div>
             <hr class="bg-black border-black" />
-            <div class="flex">
+            <div class="flex flex-col md:flex-row">
             <div class="mt-2 w-full">
             <b class="underline">Core Stats</b>
-            <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'C'" class="section-header mb-1">
-                <div class="flex flex-col">
+            <div class="flex flex-wrap mb-1">
+            <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'C'" class="mb-1 w-3/6">
+                <div class="flex flex-wrap">
                 <label>{{ key }}</label>  
-                <input class="w-2/3" type="text" :key="key" :name="key" v-model="value.value" />
+                <input type="text" :key="key" :name="key" v-model="value.value" />
                 </div>
                 <!-- another field is needed here, which is calculated from the value of the stat, using the DND formula -->
                 <label class="w-full">Modifier</label>
                 <span>{{ calculateModifier(value.value) }}</span>
              </div>
-             <div class="bg-gray-200 p-2 w-3/5 shadow shadow-outline shadow-inner border mb-2">
+             </div>
+             <hr class="bg-black border-black" />
+             <div class="bg-gray-200 p-2 w-full shadow shadow-outline shadow-inner border mt-2 mb-2">
              <b class="underline">Skills</b>
              <div v-for="(value, key) in skills" :key="key" class="section-skills">
                 <label>{{ value.name }}</label> 
@@ -82,8 +95,9 @@
           </form>
         </div>
 </div>
+</div>
 <div v-show="activeSection === 'blocks'" id="sheet-container" class="flex flex-col w-full items-center justify-center">
-  <div class="w-3/6 mt-3">
+  <div class="w-full mt-3">
   <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
   <div class="relative">
       <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -94,44 +108,50 @@
       <input  @input="performSearch" type="search" id="default-search" class="block w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search for a block..." required>
   </div>
 </div>
-<div class="flex w-3/6">
-  <ul id="block-list" class="w-3/6 mt-3">
+<div class="flex w-full">
+  <ul id="block-list" class="w-2/6 ml-3 mt-3 text-white">
       <li class="text-3xl underline mb-1">Statblocks:</li>
       <li v-for="(block, index) in filteredblocks" :key="index" class="text-2xl mb-1 border-b-4 border-black">
         <a href="#" @click="loadBlock(block.id)">{{ block.name }}</a>
       </li>
 </ul>
-<div v-if="isNotEmptyObject(loadedBlock)" id="loaded-block" class="w-3/6 mt-3 ml-3 stat_block flex flex-col">
+<div v-if="isNotEmptyObject(loadedBlock)" id="loaded-block" class="w-4/6 mt-3 ml-3 mr-3 stat_block flex flex-col">
    <span class="font-bold text-4xl underline">{{ loadedBlock.name }}</span>
    <span class="text-2xl">{{ loadedBlock.size }} {{ loadedBlock.type }}, {{ loadedBlock.alignment }}</span>
     <span class="text-1xl">Armor Class {{ loadedBlock.armor_class }}</span>
     <span class="text-1xl">Hit Points {{ loadedBlock.hit_points }}</span>
     <span class="text-1xl">Speed {{ loadedBlock.speed }}</span>
     <hr />
-    <div class="flex flex-row">
-    <div class="flex flex-col p-2">
+    <div class="flex flex-col">
+    <div class="flex pt-2">
+    <div class="flex flex-col w-3/6">
     <span class="text-1xl">STR</span>
     <span class="text-1xl">{{ loadedBlock.strength }} ({{ calculateModifier(loadedBlock.strength)}})</span>
     </div>
-    <div class="flex flex-col p-2">
+    <div class="flex flex-col w-3/6">
       <span class="text-1xl">DEX</span>
       <span class="text-1xl">{{ loadedBlock.dexterity }} ({{ calculateModifier(loadedBlock.dexterity)}})</span>
       </div>
-      <div class="flex flex-col p-2">
+      </div>
+      <div class="flex pt-2">
+      <div class="flex flex-col w-3/6">
         <span class="text-1xl">CON</span>
         <span class="text-1xl">{{ loadedBlock.constitution }} ({{ calculateModifier(loadedBlock.constitution)}})</span>
         </div>
-        <div class="flex flex-col p-2">
+        <div class="flex flex-col w-3/6">
           <span class="text-1xl">INT</span>
           <span class="text-1xl">{{ loadedBlock.intelligence }} ({{ calculateModifier(loadedBlock.intelligence)}})</span>
           </div>
-          <div class="flex flex-col p-2">
+        </div>
+        <div class="flex pt-2 pb-2">
+          <div class="flex flex-col  w-3/6">
             <span class="text-1xl">WIS</span>
             <span class="text-1xl">{{ loadedBlock.wisdom }} ({{ calculateModifier(loadedBlock.wisdom)}})</span>
             </div>
-            <div class="flex flex-col p-2">
+            <div class="flex flex-col  w-3/6">
               <span class="text-1xl">CHA</span>
               <span class="text-1xl">{{ loadedBlock.charisma }} ({{ calculateModifier(loadedBlock.charisma)}})</span>
+              </div>
               </div>
     </div>
     <hr />
@@ -154,11 +174,40 @@
   </div>
 </div>
 </div>
+<div v-show="activeSection === 'admin'" class="flex flex-col w-full items-center justify-center text-white">
+  <div class="font-white" v-for="(player, key) in players">
+    <span>{{ player.id }}</span>
+    <span>{{ player.name }}</span>
+  </div>
+</div>
+<div v-show="activeSection === 'resources'" class="flex flex-col w-full items-center justify-center text-white">
+</div> 
+<div v-show="activeSection === 'itemDB'" class="flex flex-col bg-white w-full items-center justify-center text-white">
+  <div class="w-auto text-white mt-2">
+    <span class="font-bold text-xl">Items</span>
+  </div>
+    <table class="w-auto table-auto text-left text-lg">
+      <thead class="bg-gray-500 text-white">
+        <th class="px-4 py-2">Name</th>
+        <th class="px-4 py-2">Description</th>
+        <th class="px-4 py-2">Category</th>
+      </thead>
+      <tr v-for="(item, key) in items" class="text-black bg-white"  @click="ShowItemDetails(item.attributes)">
+        <td  class="font-bold px-4 py-2">{{ item.name }}</td>
+        <td class="px-4 py-2">{{ item.description }}</td>
+        <td class="px-4 py-2">{{ item.item_type.name }}</td>
+      </tr>
+    </table>
 </div>
 </div>
 </body>
 </html>
 <script type="application/javascript">
+
+function onStateChangeEvent(msg) {
+
+}
+
     const VueApp = new Vue({
       el: '#app',
       data: {
@@ -166,9 +215,16 @@
         characters: [],
         skills: [],
         blocks: [],
-        activeSection: 'blocks', // Default active section
+        activeSection: 'sheets', // Default active section
         searchQuery: '',
         loadedBlock: {},
+        players: [],
+        player: {},
+        playersCreatures: [],
+        resources: [],
+        activeSheet: '',
+        mappings: [],
+        items: [],
       },
       computed: {
       filteredblocks() {
@@ -207,14 +263,82 @@
     isNotEmptyObject(value) {
       // check if the value is an object and it isn't empty
       return typeof value === 'object' && Object.keys(value).length > 0;
+    },
+    hasSheet(e) {
+      // check if the character is being pulled back from the API.
+      var character = this.characters.find(character => character.talespire_id === e);
+      // check if character OR character.sheet is an object and it isn't empty
+      if(character === undefined || character.sheet === undefined) {
+
+        return true;
+      } else {
+        return false;
+      }
+    },
+    async refreshCreatures() {
+
+        var data = await initSheet(VueApp.player);
+        var creatures = await getUsersCreatures(player.id);
+        var resources = await getUsersResources(player.id);
+        VueApp.resources = resources;
+        VueApp.playersCreatures = creatures;
+        processSheet(data.characters,  VueApp.mappings);
+
+
+},
+async createSheet(creatureID) {
+    // id = users TS id
+    let id = VueApp.player.id;
+    // search player creatures for matching id and send it as data
+    let data = VueApp.playersCreatures.find(creature => creature.id === creatureID);
+    let preparedData = {
+      id: data.id,
+      name: data.name,
+
+    };
+    sheet = await createSheet(id, preparedData);
+    return sheet;
+
+},
+displayResource(resource) {
+  console.log(resource);
+
+  },
+  setActiveSheet(creatureID) {
+    // find the character id based on the passed talespire_id and set the id to the value of activeSheet
+    let sheet = this.characters.find(character => character.talespire_id === creatureID).id;
+    this.activeSheet = sheet;
+  },
+  ShowItemDetails(item) {
+    // get the table row
+    let td = event.target.parentNode;
+    // if next sibling is div, remove it
+    if(td.nextSibling.tagName === 'DIV') {
+      td.nextSibling.remove();
     }
+    // create a div
+    // for each item key in the item object create a div with the key and value
+    let div = document.createElement('div');
+    for (const [key, value] of Object.entries(item)) {
+      // set the div innerHTML to the value
+      div.innerHTML += this.removeUnderline(key) + ": " +  value + " | ";
+      // the div should be after the td, not in it
+      td.after(div);
     }
+
+  },
+  
+
+}
   
     });
-    
+
     function UpdateSheet(id) {
     
     }
+
+
+
     function processSheet(data, mappings) {
 
         // This function will go through each data.characters.sheets and map the keys to the correct type, for logic in vue JS, e.g. if the key is "class" then the type is "B", for "Basic" and so on.
@@ -251,16 +375,29 @@
     });
     // push data into vue app.
     VueApp.characters = data;
+    // set activeSheet to be the ID of the first character in the array.
+    VueApp.activeSheet = data[0].id;
     };
 
     async function main() {
-        var data = await initSheet();
+
         var mappings = await fetchMappings();
+        VueApp.mappings = mappings;
         var skills = await fetchSkills();
+        var players = await getPlayers();
         var blocks = await fetchBlocks();
         VueApp.skills = skills;
         VueApp.blocks = blocks;
-
+        VueApp.players = players;
+        var player = await getUser();
+        VueApp.player = player;
+        var data = await initSheet(player);
+        var creatures = await getUsersCreatures(player.id);
+        var resources = await getUsersResources(player.id);
+        VueApp.resources = resources;
+        VueApp.playersCreatures = creatures;
+        var items = await fetchItems();
+        VueApp.items = items;
         processSheet(data.characters, mappings);
       }
     main();
@@ -286,8 +423,8 @@
 
   display: flex;
   flex-direction: column;
-  margin: 1em;
-    padding: 3em;
+  
+    padding: 2em;
     background-color: #f5f5f5;
     border: 1px solid #ccc;
   border-radius: 8px;
