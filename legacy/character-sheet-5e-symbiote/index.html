@@ -1,0 +1,294 @@
+<html>
+<head>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.7.107/pdf.min.js"></script>
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="generic_sheet.css" />
+    <title>Home</title>
+</head>
+<body>
+    <div>
+        <section class="margin-left">
+        <button onclick="getPlayerCreatures()">Get Sheets</button>
+        <section id="sheet-list">
+
+
+        </section>
+        </section>
+        <!-- stats tab -->
+        <div>
+        <section class="margin-left">
+        <input type="hidden" data-activesheet value=""></input>
+        <h1>Name: </h1><input data-sheet-value="chrname" class="data-value"  type="text" value=""></input>
+        </section>
+        <hr />
+        <div class="flex">
+        <section class="margin-left">
+            <div class="flex-col">
+            <label>Armor Class: </label><input data-sheet-value="AC" class="data-value" type="number"  value=""></input>
+            <label>Initiative: </label><input data-sheet-value="Initiative" class="data-value"  value=""></input>
+            <label>Speed: </label><input data-sheet-value="speed" class="data-value" value=""></input>
+            <label>Hit Points: </label><input data-sheet-value="HP" class="data-value" value=""></input>
+            <label>Hit Dice: </label><input data-sheet-value="HD" class="data-value" value=""></input>
+            <label>Proficiency bonus</label><input data-sheet-value="Proficiency" class="data-value" type="number" value=""></input>
+            <label>Inspiration</label><input data-sheet-value="Inspiration" class="data-value" type="number" value=""></input>
+        </section>
+        <section class="margin-left">
+            <div class="flex-col">
+            <label>Class: </label><input data-sheet-value="Class" class="data-value"  data-chrclass type="text" value=""></input>
+            <label>Race: </label><input data-sheet-value="Race" class="data-value"  data-chrrace type="text" value=""></input>
+            <label>Background: </label><input data-sheet-value="Background" class="data-value"  data-chrbackground type="text" value=""></input>
+            <label>Alignment: </label><input data-sheet-value="Alignment" class="data-value"  data-chralignment></input>
+            <label>Level: </label><input data-sheet-value="Level" class="data-value"  data-chrlevel></input>
+            <label>Player Name: </label><input data-sheet-value="PCName" class="data-value"  data-chrplyname></input>
+            <label>Experience Points: </label><input class="data-value"  data-chrxp></input>
+            </div>
+        </section>
+        </div>
+        <hr />
+        <section>
+        </section>
+        <section>
+        <div class="flex" style="max-width: 100%">
+        <div class="flex-col mini-input small-margin">
+        <label  class="align-center-self">STR</label>
+        <input data-can-math="true" data-sheet-value="STR" class="data-value" onchange="calcMod(this)"></input>
+        <input data-sheet-value="STRMOD" class="data-value"></input>
+        </div>
+        <div class="flex-col mini-input small-margin">
+            <label class="align-center-self">DEX </label>
+            <input data-can-math="true" data-sheet-value="DEX" class="data-value" onchange="calcMod(this)"></input>
+            <input data-sheet-value="DEXMOD" class="data-value"></input>
+            </div>
+        <div class="flex-col mini-input small-margin">
+            <label class="align-center-self">CON </label>
+            <input data-can-math="true" data-sheet-value="CON" class="data-value" onchange="calcMod(this)"></input>
+            <input data-sheet-value="CONMOD" class="data-value"></input>
+            </div>
+            <div class="flex-col mini-input small-margin">
+                <label class="align-center-self">INT </label>
+                <input data-can-math="true" data-sheet-value="INT" class="data-value" onchange="calcMod(this)"></input>
+                <input data-sheet-value="INTMOD" class="data-value"></input>
+                </div>
+                <div class="flex-col mini-input small-margin">
+                    <label class="align-center-self">WIS </label>
+                    <input data-can-math="true" data-sheet-value="WIS" class="data-value" onchange="calcMod(this)"></input>
+                    <input data-sheet-value="WISMOD" class="data-value"></input>
+                    </div>
+                    <div class="flex-col mini-input small-margin">
+                        <label class="align-center-self">CHR</label>
+                        <input data-can-math="true" data-sheet-value="CHR" class="data-value" onchange="calcMod(this)"></input>
+                        <input data-sheet-value="CHRMOD" class="data-value"></input>
+                        </div>
+                    </div>
+        </section>
+        <hr />
+        <section>
+            <h2 data-chrsavingthrows>Saving Throws: </h2>
+        </section>
+        <h2 data-chrskills>Skills: </h2>
+    </div>
+    <!--- Bio Tab-->
+    <div>
+        <div class="flex-col small-margin">
+        <label>Personality Traits</label>
+        <textarea> </textarea>
+        </div>
+        <div class="flex-col small-margin">
+        <label>Ideals</label>
+        <textarea> </textarea>
+        </div>
+        <div class="flex-col margin-left">
+        <label>Bonds</label>
+        <textarea> </textarea>
+        <label>Flaws</label>
+        <textarea> </textarea>
+        </div>
+        </div>
+        <!--- Features and Traits-->
+        <hr />
+        <label>Features and Traits</label>
+        <textarea> </textarea>
+    </div>
+        <button onclick="updateSheet()">Update Sheet</button>
+    </div>
+
+</body>
+<script>
+// When the document is loaded, we need to check who the player is, and then load their character sheet.
+function onStateChangeEvent(msg) {
+
+}
+// This function is used to load a sheet when a player has clicked on the button for the sheet they want to load.
+async function loadSheet(e) {
+    // clear all elements with class "data-value"
+    let elements = document.querySelectorAll(".data-value");
+    for (let element of elements) {
+        element.value = "";
+    }
+    // Get the data from the local storage
+    let data = await TS.localStorage.campaign.getBlob();
+    data = JSON.parse(data);
+    // get the data attribute from the button that was clicked
+    let sheetname = e.getAttribute("data-sheetname");
+    // get the sheet from the data
+    let sheet = data.sheets[sheetname];
+    // if the sheet doesn't exist, then we need to create it.
+    if (sheet === undefined) {
+        "Sorry, couldn't find a sheet."
+    } else {
+    // for each key in the sheet, we need to find the corresponding element in the HTML and set its value to the value in the sheet via the use of data attributes which match the keynames.
+    let setSheet = document.querySelector("[data-activesheet]");
+    setSheet.value = sheetname;
+    for (let key in sheet) {
+        // find the element in the HTML with the matching data attribute
+        // check if element exists
+        let dataelement = document.querySelector("[data-sheet-value=" + key + "]");
+        // add a listener to data elements that have "true" in the data-can-math attribute
+        if (dataelement === null) {
+            continue;
+        }
+        let element = document.querySelector("[data-sheet-value=" + key + "]");
+        // set the value of the element to the value in the sheet
+        element.value = sheet[key];
+    }
+    }
+
+}
+// This function takes no parameters, it checks with Talespire to see who the player is, grabs all of their characters and then calls getSheets to load the sheets in.
+async function getPlayerCreatures() {
+let player = await TS.players.whoAmI();
+let arr = [];
+var details = "";
+arr.push(player);
+let playerdetails = await TS.players.getMoreInfo(arr);
+    if(playerdetails[0].rights.canGm == true) {
+
+        console.log("You are a DM, loading all sheets.");
+        details = await TS.creatures.getUniqueCreaturesInThisCampaign();
+
+    } else {
+        console.log("You are not a DM, loading only your sheets.");
+        details = await TS.creatures.getCreaturesOwnedByPlayer(player);
+}
+let extras = await TS.creatures.getMoreInfo(details);
+details = "";
+getSheets(extras);
+
+
+}
+async function getSheets(creatures) {
+    // clear the sheet list
+    document.querySelector("#sheet-list").innerHTML = "";
+
+
+    for (let creature of creatures) {
+        let data = await TS.localStorage.campaign.getBlob();
+        data = JSON.parse(data);
+        // If this creature doesn't have a sheet, then we need to create a button for it.
+        if (data.sheets[creature.id] === undefined) {
+            console.log( creature.name + " has no sheet.");
+            let elementdiv = document.createElement("div");
+            let element = document.createElement("button");
+            elementdiv.appendChild(element);
+            element.innerHTML = "no sheet for " + creature.name + ", click to create.";            
+            element.className = "button danger margin-top cursor-pointer";
+            element.setAttribute("data-sheetname", creature.id);
+            element.onclick = function() {
+                makeSheet(this);
+            }
+            document.querySelector("#sheet-list").appendChild(elementdiv);
+
+        } else {
+            // if the sheet does exist, then we need to load it, we should also create a button for each sheet that allows us to load it and switch between them on demand.
+            let elementdiv = document.createElement("div");
+            let element = document.createElement("button");
+            elementdiv.appendChild(element);
+
+            element.innerHTML = creature.name;
+            element.onclick = function() {
+                loadSheet(this);
+            }
+            element.className = "interactible-title margin-top cursor-pointer";
+            // Add a data attribute to the element that contains the sheetname
+            element.setAttribute("data-sheetname", creature.id);
+            document.querySelector("#sheet-list").appendChild(elementdiv);
+            console.log(data.sheets[creature.id]);
+        }
+    }
+
+
+}
+async function makeSheet(e) {
+
+    // get the data attribute from the button that was clicked
+    let creatureID = e.getAttribute("data-sheetname");
+    // if the sheet doesn't exist, then we need to create it.
+    let data = await TS.localStorage.campaign.getBlob();
+    data = JSON.parse(data);
+    // look in the data for the creature with the matching id, format should be data.sheets.id
+    if (data.sheets[creatureID] === undefined) {
+        // if the sheet doesn't exist, then we need to create it, we should get the creature details from Talespire and then create a sheet based on that.
+        // get the creature details from Talespire
+        let arr = [];
+        arr.push(creatureID);
+        let creature = await TS.creatures.getMoreInfo(arr);
+        let name = "";
+        console.log(creature);
+        if (creature[0].nameSet === true) {
+             name = creature[0].name;
+        }
+        // create a new sheet object with the name of the creature.
+        console.log("No sheet found, creating one.")
+        let sheet = {
+            "chrname": name,
+        }
+        // add the sheet to the data
+        data.sheets[creatureID] = sheet;
+        // save the sheet
+        TS.localStorage.campaign.setBlob(JSON.stringify(data)).then(() => {
+        });
+        // reload the sheet list
+    } else {
+        // if the sheet does exist, then we need to load it.
+        console.log(data.sheets[creatureID])
+
+
+}
+}
+// this function updates the sheet with the click of a button.
+async function updateSheet() {
+ // check the active sheet
+    let activesheet = document.querySelector("[data-activesheet]").value;
+    // get the data from the local storage
+    let data = await TS.localStorage.campaign.getBlob();
+    data = JSON.parse(data);
+    // get the sheet from the data
+    let sheet = data.sheets[activesheet];
+    // get all elements with the data-value class
+    let elements = document.getElementsByClassName("data-value");
+    // for each element, we need to get the data attribute and then set the value in the sheet to the value in the element.
+    for (let element of elements) {
+        // get the data attribute
+        let dataattribute = element.getAttribute("data-sheet-value");
+        // set the value in the sheet to the value in the element
+        sheet[dataattribute] = element.value;
+    }
+    data.sheets[activesheet] = sheet;
+    // save the sheet
+    TS.localStorage.campaign.setBlob(JSON.stringify(data)).then(() => {
+        });
+
+
+
+}
+
+function calcMod(e) {
+    let mod = Math.floor((e.value - 10) / 2);
+    let modfield = document.querySelector("[data-sheet-value=" + e.getAttribute("data-sheet-value") + "MOD]");
+    console.log(modfield);
+    modfield.value = mod;
+}
+
+
+</script>
+</html>

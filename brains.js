@@ -48,6 +48,7 @@ async function fetchBlocks() {
       }
   }
 
+<<<<<<< HEAD
 async function fetchItems() {
 
   var response = await fetch(`http://localhost:3000/Items`)
@@ -57,6 +58,8 @@ async function fetchItems() {
 }
 
 
+=======
+>>>>>>> 37c4a72df419cc6d9b1dc79f7ef9e8ad2010e06a
 async function  getPlayers() {
 
   players = await TS.players.getPlayersInThisCampaign();

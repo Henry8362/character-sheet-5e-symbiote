@@ -16,7 +16,10 @@
         <a href="#" class="text-white font-semibold hover:underline pr-4" @click="showSection('blocks')">Blocks</a>
         <a href="#" class="text-white font-semibold hover:underline" @click="showSection('resources')">Resources</a>
         <a href="#" class="text-white font-semibold hover:underline" @click="showSection('admin')">Admin</a>
+<<<<<<< HEAD
         <a href="#" class="text-white font-semibold hover:underline" @click="showSection('itemDB')">Items</a>
+=======
+>>>>>>> 37c4a72df419cc6d9b1dc79f7ef9e8ad2010e06a
     </div>
 </nav>
     <div v-show="activeSection === 'sheets'" id="sheet-container" class="flex flex-col w-full items-center justify-center">
@@ -181,6 +184,7 @@
   </div>
 </div>
 <div v-show="activeSection === 'resources'" class="flex flex-col w-full items-center justify-center text-white">
+<<<<<<< HEAD
 </div> 
 <div v-show="activeSection === 'itemDB'" class="flex flex-col bg-white w-full items-center justify-center text-white">
   <div class="w-auto text-white mt-2">
@@ -198,6 +202,14 @@
         <td class="px-4 py-2">{{ item.item_type.name }}</td>
       </tr>
     </table>
+=======
+  <div class="font-white" v-for="(resource, key) in resources.player.resources">
+    <span>{{ resource.id }}</span>
+    <span>{{ resource.name }}</span>
+    <span>{{ displayResource(resource.resource) }}</span>
+  </div>
+</div>
+>>>>>>> 37c4a72df419cc6d9b1dc79f7ef9e8ad2010e06a
 </div>
 </div>
 </body>
@@ -223,8 +235,12 @@ function onStateChangeEvent(msg) {
         playersCreatures: [],
         resources: [],
         activeSheet: '',
+<<<<<<< HEAD
         mappings: [],
         items: [],
+=======
+        mappings: []
+>>>>>>> 37c4a72df419cc6d9b1dc79f7ef9e8ad2010e06a
       },
       computed: {
       filteredblocks() {
@@ -309,6 +325,7 @@ displayResource(resource) {
     let sheet = this.characters.find(character => character.talespire_id === creatureID).id;
     this.activeSheet = sheet;
   },
+<<<<<<< HEAD
   ShowItemDetails(item) {
     // get the table row
     let td = event.target.parentNode;
@@ -327,6 +344,8 @@ displayResource(resource) {
     }
 
   },
+=======
+>>>>>>> 37c4a72df419cc6d9b1dc79f7ef9e8ad2010e06a
   
 
 }
@@ -396,8 +415,11 @@ displayResource(resource) {
         var resources = await getUsersResources(player.id);
         VueApp.resources = resources;
         VueApp.playersCreatures = creatures;
+<<<<<<< HEAD
         var items = await fetchItems();
         VueApp.items = items;
+=======
+>>>>>>> 37c4a72df419cc6d9b1dc79f7ef9e8ad2010e06a
         processSheet(data.characters, mappings);
       }
     main();
@@ -424,7 +446,11 @@ displayResource(resource) {
   display: flex;
   flex-direction: column;
   
+<<<<<<< HEAD
     padding: 2em;
+=======
+    padding: 3em;
+>>>>>>> 37c4a72df419cc6d9b1dc79f7ef9e8ad2010e06a
     background-color: #f5f5f5;
     border: 1px solid #ccc;
   border-radius: 8px;

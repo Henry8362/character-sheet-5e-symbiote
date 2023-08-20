@@ -23,7 +23,12 @@
   "webViewBackgroundColor": "#000000",
   "extras": [
     "fonts",
+<<<<<<< HEAD
     "icons"
+=======
+    "icons",
+    "colorStyles"
+>>>>>>> 37c4a72df419cc6d9b1dc79f7ef9e8ad2010e06a
   ]
 }
 }
