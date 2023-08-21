@@ -49,6 +49,14 @@
             <span v-else>
             <img class="img-border" src="https://placehold.co/275x275" alt="Image" />
             </span>
+            <div>
+            <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'B2'" class="mt-3 mb-1">
+              <label>{{ removeUnderline(key) }}:</label>  
+              <input type="text" :key="key" :name="key" v-model="value.value"  v-enlarge="value.value"
+ />
+            </div>
+            </div> 
+            
             </div>
             </div>
             <hr class="bg-black border-black" />
@@ -312,7 +320,7 @@ function onStateChangeEvent(msg) {
       }
     },
     async refreshCreatures() {
-
+        console.log("Refreshing Creatures");
         var data = await initSheet(VueApp.player);
         var creatures = await getUsersCreatures(player.id);
         var resources = await getUsersResources(player.id);
@@ -431,9 +439,32 @@ displayResource(resource) {
       // put the item data and the dice roll into a string and add it to the rollData array
       // this will be used in the rollDice function to roll the dice.
       this.rollData.push({"character_id": characterID,"item": item, "rollID": dice, "type": typeString});
-},
+},  
+      },directives: {
+    enlarge: {
+      bind(el, binding) {
+        console.log(el)
+        var isEnlarged = false;
+        if (isEnlarged) {
+          el.classList.add('enlarge-animation');
+          setTimeout(() => {
+            el.classList.remove('enlarge-animation');
+          }, 500);
       }
+    },update(el, binding) {
+        // if value is different from previous value
+        if (binding.value !== binding.oldValue) {
+          // then toggle the class
+          el.classList.toggle('enlarge-animation');
+          setTimeout(() => {
+            el.classList.remove('enlarge-animation');
+          }, 5000);
+        }
+    
+    }
+  }
   
+      }
     });
 
     function UpdateSheet(id) {
@@ -551,5 +582,10 @@ displayResource(resource) {
 
     border: 5px ridge #A49319;
 
+}
+
+.enlarge-animation {
+  transition: font-size 0.5s;
+  font-size: 1.5em;
 }
 </style>

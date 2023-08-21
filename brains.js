@@ -130,6 +130,20 @@ async function deductItemFromPlayerSheet(itemID, CharacterID, quantity) {
 
 
 });
+return response;s
+}
+
+async function updateCharacterSheet(CharacterID, data) {
+
+  var response = await fetch(`http://localhost:3000/Characters/${CharacterID}/UpdateSheet`, {
+    method: 'POST', // Use 'PUT' if updating instead of creating
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+
+  });
+  return response;
 
 }
 
@@ -158,7 +172,7 @@ async function handleRollResult(rollEvent) {
           switch(data[0].item.attributes.type) {
             case "heal":
               let bonusHealing = data[0].item.attributes.bonus;
-              totalHealing = parseInt(total) + parseInt(bonusHealing);
+              let totalHealing = parseInt(total) + parseInt(bonusHealing);
               // add the total healing to the character sheet via the API and deduct the item from the character sheet.
               // we need to get the character sheet ID from the roll data.
               let characterID = data[0].character_id;
@@ -166,8 +180,10 @@ async function handleRollResult(rollEvent) {
               // add the item to the character sheet
               await deductItemFromPlayerSheet(itemID, characterID, 1);
               // add the healing to the character sheet
-              // await addHealingToPlayerSheet(characterID, totalHealing);
-
+              totalHealing = { "healing": totalHealing };
+              console.log("updating character sheet");
+              await updateCharacterSheet(characterID, totalHealing);
+              console.log("healing added to character sheet");
             break;
 
 
@@ -182,6 +198,7 @@ async function handleRollResult(rollEvent) {
         }
         //unset VueApp.rollData
         VueApp.rollData = [];
+        VueApp.refreshCreatures();
         return;
     }
   
