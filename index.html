@@ -1,0 +1,555 @@
+<html>
+<head>
+<script  type="application/javascript" src="brains.js"></script>
+<script type="application/javascript" src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+<!-- Include Tailwind CSS from CDN -->
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+<div id="app" class="w-full">
+  <nav class="bg-blue-500 p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <a href="#" class="text-white font-semibold hover:underline pr-4" @click="showSection('sheets')">Sheets</a>
+        <a href="#" class="text-white font-semibold hover:underline pr-4" @click="showSection('blocks')">Blocks</a>
+        <a href="#" class="text-white font-semibold hover:underline" @click="showSection('resources')">Resources</a>
+        <a href="#" class="text-white font-semibold hover:underline" @click="showSection('admin')">Admin</a>
+        <a href="#" class="text-white font-semibold hover:underline" @click="showSection('itemDB')">Items</a>
+    </div>
+</nav>
+    <div v-show="activeSection === 'sheets'" id="sheet-container" class="flex flex-col w-full items-center justify-center">
+      <div class="w-11/12 text-white text-lg mt-3 font-bold">My Unique Characters</div>
+      <div class="w-11/12 text-white text-md mt-1 mb-1">Below is a list of your unique creatures in this campaign, 
+        you can create a sheet for each one.</div>
+      <div class="w-11/12">
+        <button class="bg-blue-500 w-3/6 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @click="refreshCreatures()">Refresh Creatures</button>
+        <div class="w-full flex flex-wrap mt-2">
+        <div class="w-3/6 text-white flex flex-col " v-for="(critter, index) in playersCreatures">
+        <span>{{ truncateString(critter.name, 25) }}</span>
+        <button class="bg-blue-500 w-full hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" v-if="hasSheet(critter.id) === false" @click="createSheet(critter.id)">Create Sheet</button>
+        <button class="bg-blue-500 w-11/12 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" v-else @click="setActiveSheet(critter.id)">View Sheet</button>
+        </div>
+        </div>
+        <div class="w-12/12" v-for="(character, index) in characters" v-if="character.sheet != null" :key="index" v-show="activeSheet == character.id">
+          <form :id="character.id" class="parchment mt-3 w-full">
+            <div class="parchment_header flex justify-between">
+            <div class="mr-4">
+            <h1 class="text-4xl underline mb-1">{{ character.name }}</h1>
+            <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'B'" class="mb-1">
+                    <label>{{ removeUnderline(key) }}:</label>  
+                    <input type="text" :key="key" :name="key" v-model="value.value" />
+            </div>
+        </div>
+        <div class="ml-4">
+            <span v-if="character.picture">  
+            <img class="img-border" v-if="character.picture ":src="character.picture" alt="Image" />  
+            </span> 
+            <span v-else>
+            <img class="img-border" src="https://placehold.co/275x275" alt="Image" />
+            </span>
+            </div>
+            </div>
+            <hr class="bg-black border-black" />
+            <div>
+              <span
+              @click="activeSheetTab = 'core'"
+              :class="[ 'inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'core' ? 'border-blue-500 text-blue-500' : 'border-transparent']"
+             >
+              Core Stats
+            </span>
+              <span @click="activeSheetTab = 'inventory'"  :class="[ 'inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'inventory' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Inventory</span>
+              <span @click="activeSheetTab = 'spells'"  :class="[ 'inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'spells' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Spells</span>
+              <span @click="activeSheetTab = 'bio'"  :class="[ 'inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'bio' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Bio</span>
+            </div>
+            <div class="flex flex-col md:flex-row w-full mt-2" v-show="activeSheetTab === 'core'">
+            <div class="flex flex-wrap w-full mb-1">
+              <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'C'" class="mb-1 w-3/6">
+                  <div class="flex flex-wrap">
+                  <label>{{ key }}</label>  
+                  <input type="text" :key="key" :name="key" v-model="value.value" />
+              </div>
+                <!-- another field is needed here, which is calculated from the value of the stat, using the DND formula -->
+              <label class="w-full">Modifier</label>
+              <span>{{ calculateModifier(value.value) }}</span>
+              </div>
+            </div>
+             <hr class="bg-black border-black" />
+             <!-- SKILLS SECTION -->
+             <div class="bg-gray-200 p-2 w-full shadow shadow-outline shadow-inner border mt-2 mb-2">
+                <b class="underline">Skills</b>
+                <div v-for="(value, key) in skills" :key="key" class="section-skills">
+                  <label>{{ value.name }}</label> 
+                | {{ shortenStat(value.associated_stat) }}
+                  <span v-if="character.sheet.skills.value">
+                  <span v-if="findSkillProf(character.sheet.skills.value, value.name)">| <b>proficient</b></span>
+                </span>
+                </div>
+            </div>
+            <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'M'" class="section-header mb-1">
+                    <div class="flex flex-col">
+                    <label>{{ removeUnderline(key) }}</label>  
+                    <input class="w-2/3" type="text" :key="key" :name="key" v-model="value.value" />
+                    </div>
+              </div>
+              </div>
+              <div class="flex flex-col md:flex-row" v-show="activeSheetTab === 'inventory'">
+                <div class="mt-2 mb-2 w-full">
+                  <hr class="bg-black border-black" />
+                  <div class="flex flex-col" v-for="(item, key) in character.sheet.items.value">
+                    <span>{{ item.sheets_items.quantity }} x <span class="font-bold" v-if="item.sheets_items.quantity === 1">{{ item.name }}</span><span class="font-bold" v-else>{{ item.name }}s</span> - {{ item.description}}</span>
+                    <span v-if="item.type_id === 2">{{ item.attributes.damage }} {{ item.attributes.damage_type }} damage.</span>
+                    <button class="bg-red-400 w-3/6 text-white font-bold mb-2 rounded">Sell</button>
+                    <button v-if="item.type_id === 1 || item.type_id === 2 || item.type_id === 4" class=" w-3/6 bg-green-400 text-white font-bold rounded">Equip</button>
+                    <button v-if="item.type_id === 3" class=" w-3/6 bg-green-400 text-white font-bold rounded" type="button" @click.prevent="useConsumable(item, character.id, 'item')">Consume</button>
+                    <hr class="bg-black border-black mt-1 mb-2" />
+                    </div>
+                </div>
+                </div>
+                <div class="flex flex-col md:flex-row" v-show="activeSheetTab === 'spells'"></div>
+                <div class="flex flex-col md:flex-row" v-show="activeSheetTab === 'bio'">
+                  <div class="w-full mt-2">
+                    <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'F'" class="section-header mb-1 flex flex-col">
+                        <label class="underline font-bold mt-1">{{ removeUnderline(key) }}</label> 
+                        <textarea v-if="key == 'features'" :key="key" :name="key" v-model="value.value" class="w-full h-64">{{ value }}</textarea>
+                        <textarea v-else :key="key" :name="key" v-model="value.value" class="w-full h-32">{{ value }}</textarea>
+                    </div>
+                  </div>
+
+                </div>
+
+            <button class="bg-blue-500 w-24 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @click.prevent="updateSheet(character.sheets.id)">Update</button>
+          </form>
+        </div>
+</div>
+</div>
+<div v-show="activeSection === 'blocks'" id="sheet-container" class="flex flex-col w-full items-center justify-center">
+  <div class="w-full mt-3">
+  <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
+  <div class="relative">
+      <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+          </svg>
+      </div>
+      <input  @input="performSearch" type="search" id="default-search" class="block w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search for a block..." required>
+  </div>
+</div>
+<div class="flex w-full">
+  <ul id="block-list" class="w-2/6 ml-3 mt-3 text-white">
+      <li class="text-3xl underline mb-1">Statblocks:</li>
+      <li v-for="(block, index) in filteredblocks" :key="index" class="text-2xl mb-1 border-b-4 border-black">
+        <a href="#" @click="loadBlock(block.id)">{{ block.name }}</a>
+      </li>
+</ul>
+<div v-if="isNotEmptyObject(loadedBlock)" id="loaded-block" class="w-4/6 mt-3 ml-3 mr-3 stat_block flex flex-col">
+   <span class="font-bold text-4xl underline">{{ loadedBlock.name }}</span>
+   <span class="text-2xl">{{ loadedBlock.size }} {{ loadedBlock.type }}, {{ loadedBlock.alignment }}</span>
+    <span class="text-1xl">Armor Class {{ loadedBlock.armor_class }}</span>
+    <span class="text-1xl">Hit Points {{ loadedBlock.hit_points }}</span>
+    <span class="text-1xl">Speed {{ loadedBlock.speed }}</span>
+    <hr />
+    <div class="flex flex-col">
+    <div class="flex pt-2">
+    <div class="flex flex-col w-3/6">
+    <span class="text-1xl">STR</span>
+    <span class="text-1xl">{{ loadedBlock.strength }} ({{ calculateModifier(loadedBlock.strength)}})</span>
+    </div>
+    <div class="flex flex-col w-3/6">
+      <span class="text-1xl">DEX</span>
+      <span class="text-1xl">{{ loadedBlock.dexterity }} ({{ calculateModifier(loadedBlock.dexterity)}})</span>
+      </div>
+      </div>
+      <div class="flex pt-2">
+      <div class="flex flex-col w-3/6">
+        <span class="text-1xl">CON</span>
+        <span class="text-1xl">{{ loadedBlock.constitution }} ({{ calculateModifier(loadedBlock.constitution)}})</span>
+        </div>
+        <div class="flex flex-col w-3/6">
+          <span class="text-1xl">INT</span>
+          <span class="text-1xl">{{ loadedBlock.intelligence }} ({{ calculateModifier(loadedBlock.intelligence)}})</span>
+          </div>
+        </div>
+        <div class="flex pt-2 pb-2">
+          <div class="flex flex-col  w-3/6">
+            <span class="text-1xl">WIS</span>
+            <span class="text-1xl">{{ loadedBlock.wisdom }} ({{ calculateModifier(loadedBlock.wisdom)}})</span>
+            </div>
+            <div class="flex flex-col  w-3/6">
+              <span class="text-1xl">CHA</span>
+              <span class="text-1xl">{{ loadedBlock.charisma }} ({{ calculateModifier(loadedBlock.charisma)}})</span>
+              </div>
+              </div>
+    </div>
+    <hr />
+    <span class="text-1xl"><b>Senses</b> {{ loadedBlock.senses }}</span>
+    <span class="text-1xl"><b>Languages</b> {{ loadedBlock.languages }}</span>
+    <span class="text-1xl"><b>Challenge</b> {{ loadedBlock.challenge_rating }}</span>
+    <hr />
+    <template v-for="(array) in loadedBlock.special_abilities">
+      <template v-for="(values, keys) in array">
+    <span class="text-1xl mt-1"><b>{{ keys }}: </b>{{ values }}</span>
+    </template> 
+    </template>
+    <hr />
+    <span class="text-2xl mt-1 mb-1 border-b-2 border-black">Actions</span>
+    <template v-for="(array) in loadedBlock.actions">
+      <template v-for="(values, keys) in array">
+    <span class="text-1xl mt-1"><b>{{ keys }}: </b>{{ values }}</span>
+    </template> 
+    </template>
+  </div>
+</div>
+</div>
+<div v-show="activeSection === 'admin'" class="flex flex-col w-full items-center justify-center text-white">
+  <div class="font-white" v-for="(player, key) in players">
+    <span>{{ player.id }}</span>
+    <span>{{ player.name }}</span>
+  </div>
+  <div class="font-white flex flex-col">
+    <span>Give a Player an Item.</span>
+    <select  @change="onSelectItem">
+      <option v-for="(item, key) in items" :key="key" :value="item.id">{{ item.name }}</option>
+    </select>
+  </div>
+</div>
+<div v-show="activeSection === 'resources'" class="flex flex-col w-full items-center justify-center text-white">
+</div> 
+<div v-show="activeSection === 'itemDB'" class="flex flex-col bg-white w-full items-center justify-center text-white">
+  <div class="w-auto text-white mt-2">
+    <span class="font-bold text-xl">Items</span>
+  </div>
+    <table class="w-auto table-auto text-left text-lg">
+      <thead class="bg-gray-500 text-white">
+        <th class="px-4 py-2">Name</th>
+        <th class="px-4 py-2">Description</th>
+        <th class="px-4 py-2">Category</th>
+      </thead>
+      <tr v-for="(item, key) in items" class="text-black bg-white"  @click="ShowItemDetails(item.attributes)">
+        <td  class="font-bold px-4 py-2">{{ item.name }}</td>
+        <td class="px-4 py-2">{{ item.description }}</td>
+        <td class="px-4 py-2">{{ item.item_type.name }}</td>
+      </tr>
+    </table>
+</div>
+</div>
+</body>
+</html>
+<script type="application/javascript">
+
+function onStateChangeEvent(msg) {
+
+}
+
+    const VueApp = new Vue({
+      el: '#app',
+      data: {
+        message: 'My Sheets',
+        characters: [],
+        skills: [],
+        blocks: [],
+        activeSection: 'sheets', // Default active section
+        activeSheetTab: 'core', // Default active sheet tab
+        searchQuery: '',
+        loadedBlock: {},
+        players: [],
+        player: {},
+        playersCreatures: [],
+        resources: [],
+        activeSheet: '',
+        mappings: [],
+        items: [],
+        rollData: [],
+      },
+      computed: {
+      filteredblocks() {
+      return this.blocks.filter(block =>
+        block.name.toLowerCase().includes(this.searchQuery.toLowerCase())
+      );
+    }
+  },
+      methods: {
+    calculateModifier(abilityScore) {
+      return Math.floor((abilityScore - 10) / 2);
+    },
+    findSkillProf(skills, skillName) {
+      return skills.find(skill => skill.name === skillName);
+    },
+    shortenStat(stat) {
+      return stat.substring(0, 3).toUpperCase();
+    },
+    removeUnderline(string) {
+      return string.replace(/_/g, ' ');
+    },
+    showSection(section) {
+                    this.activeSection = section;
+    },
+    performSearch(event) {
+      this.searchQuery = event.target.value;
+    },
+    loadBlock(id) {
+      // get the block from the blocks array
+      var block = this.blocks.find(block => block.id === id);
+      // set the loadedBlock to the block
+      this.loadedBlock = block;
+      
+
+    },
+    isNotEmptyObject(value) {
+      // check if the value is an object and it isn't empty
+      return typeof value === 'object' && Object.keys(value).length > 0;
+    },
+    hasSheet(e) {
+      // check if the character is being pulled back from the API.
+      var character = this.characters.find(character => character.talespire_id === e);
+      // check if character OR character.sheet is an object and it isn't empty
+      if(character === undefined || character.sheet === undefined || character.sheet === null) {
+
+        return false;
+      } else {
+        return true;
+      }
+    },
+    async refreshCreatures() {
+
+        var data = await initSheet(VueApp.player);
+        var creatures = await getUsersCreatures(player.id);
+        var resources = await getUsersResources(player.id);
+        VueApp.resources = resources;
+        VueApp.playersCreatures = creatures;
+        processSheet(data.characters,  VueApp.mappings);
+
+
+},
+async createSheet(creatureID) {
+    // id = users TS id
+    let id = VueApp.player.id;
+    // search player creatures for matching id and send it as data
+    let data = VueApp.playersCreatures.find(creature => creature.id === creatureID);
+    let preparedData = {
+      id: data.id,
+      name: data.name,
+
+    };
+    sheet = await createSheet(id, preparedData);
+    return sheet;
+
+},
+displayResource(resource) {
+  console.log(resource);
+
+  },
+  setActiveSheet(creatureID) {
+    // find the character id based on the passed talespire_id and set the id to the value of activeSheet
+    let sheet = this.characters.find(character => character.talespire_id === creatureID).id;
+    this.activeSheet = sheet;
+  },
+  ShowItemDetails(item) {
+    // get the table row
+    let td = event.target.parentNode;
+    // if next sibling is div, remove it
+    if(td.nextSibling.tagName === 'DIV') {
+      td.nextSibling.remove();
+    }
+    // create a div
+    // for each item key in the item object create a div with the key and value
+    let div = document.createElement('div');
+    for (const [key, value] of Object.entries(item)) {
+      // set the div innerHTML to the value
+      div.innerHTML += this.removeUnderline(key) + ": " +  value + " | ";
+      // the div should be after the td, not in it
+      td.after(div);
+    }
+
+  },
+  onSelectItem(e) {
+      // This function creates a pop-up window with the item details, which will have a button in it to add the item to the sheet.
+      // get the item id from the event
+      let itemID = e.target.value;
+      // get the item from the items array
+      let item = this.items.find(item => item.id == itemID);
+      // create a div
+      let form = document.createElement('form');
+      // give the div text-white class
+      form.classList.add('text-white', 'bg-white' , 'flex', 'flex-col', 'w-11/12');
+      // for each item key in the item object create a div with the key and value
+      // create a select with a list of all player characters
+      let select = document.createElement('select');
+      // give the select a class
+      select.classList.add('w-full', 'bg-white', 'border', 'rounded', 'border-gray-400', 'focus:outline-none', 'focus:ring', 'focus:border-blue-300');
+      // for each character in the characters array
+      for (const character of this.characters) {
+        // create an option
+        let option = document.createElement('option');
+        // set the option value to the character id
+        option.value = character.id;
+        // set the option innerHTML to the character name
+        option.innerHTML = character.name;
+        // append the option to the select
+        select.appendChild(option);
+      }
+      // append the select to the div
+      form.appendChild(select);
+
+
+
+
+      // create a button
+      let button = document.createElement('button');
+      // give classes bg-blue-500 w-3/6 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded 
+      button.classList.add('bg-blue-500', 'w-3/6', 'hover:bg-blue-700', 'text-white', 'font-bold', 'py-2', 'px-4', 'rounded');
+      // set the button innerHTML to "Add to sheet"
+      button.innerHTML = "Give " + item.name +" to sheet";
+      // add an event listener to the button
+      button.addEventListener('click', function() {
+        // call the add item function - this will be in brains.js for the API query.
+        addItemToPlayerSheet(itemID, select.value);
+      });
+      // put the button inside the div
+      form.appendChild(button);
+      // append the div to the body
+      document.body.appendChild(form);
+    },
+    truncateString(str, maxLength) {
+      if (str.length <= maxLength) {
+        return str;
+      } else {
+        return str.slice(0, maxLength) + "...";
+      }
+    },
+    // item = payload characterID = unique ID of the character in the database, typeString = "item" or "attack" for roll processing.
+    async  useConsumable(item, characterID, typeString) {
+
+// when a player clicks "Consume on the relevent item in the character sheet, this function is called."
+   // first it needs to update the quantity of the item in the database. (this is done by the API)
+      // we also need to allow for a diceRoll in talespire.
+      // get first part of .consume (before comma)
+      console.log(item);
+      let string = { "name": item.name, "roll": item.attributes.consume};
+      dice = await TS.dice.putDiceInTray([string]);
+      // put the item data and the dice roll into a string and add it to the rollData array
+      // this will be used in the rollDice function to roll the dice.
+      this.rollData.push({"character_id": characterID,"item": item, "rollID": dice, "type": typeString});
+},
+      }
+  
+    });
+
+    function UpdateSheet(id) {
+    
+    }
+
+
+
+    function processSheet(data, mappings) {
+
+        // This function will go through each data.characters.sheets and map the keys to the correct type, for logic in vue JS, e.g. if the key is "class" then the type is "B", for "Basic" and so on.
+        // This will allow us to use the same logic for each sheet, and not have to worry about the type of sheet we are dealing with.
+        // we will edit the data.characters.sheets object in place, and return it.
+        // for each character data[x]
+        data.forEach(function (character, index) {
+        console.log(character);
+        // First we need to get the keys of the data.characters.sheets object, and then we can loop through them.
+        if(character.picture && character.picture.data) {
+        var image = new Blob([new Uint8Array(character.picture.data)]);
+        data[index].picture = URL.createObjectURL(image);
+    };  
+      // if character has a sheet object exists
+      if (character.sheet != null) {
+        var keys = Object.keys(character.sheet);
+        for (var i = 0; i < keys.length; i++) {
+            // Now we have the keys, we can loop through them and check the mappings object to see what type of key it is.
+            var key = keys[i];
+            // we need to match this key to the mappings object, and get the type, this is not the index of the mappings array, but we need to exclude the "skills key"
+            
+            var type = mappings.find((element) => element.sheets_field_name == key);
+            if (type == undefined) {
+            // if the type is undefined, then we need to add a field_type of "U" for "Unknown"
+            type = "U";
+            }
+            else {
+            type = type.field_type;
+            }
+            // now we need to add in the type to the data.characters.sheets object.
+            data[index].sheet[key] = {
+            type: type,
+            value: character.sheet[key],
+            };
+        }
+      }
+    });
+    // push data into vue app.
+    VueApp.characters = data;
+    // set activeSheet to be the ID of the first character in the array.
+    VueApp.activeSheet = data[0].id;
+    };
+
+    async function main() {
+
+        var mappings = await fetchMappings();
+        VueApp.mappings = mappings;
+        var skills = await fetchSkills();
+        var players = await getPlayers();
+        var blocks = await fetchBlocks();
+        VueApp.skills = skills;
+        VueApp.blocks = blocks;
+        VueApp.players = players;
+        var player = await getUser();
+        VueApp.player = player;
+        var data = await initSheet(player);
+        var creatures = await getUsersCreatures(player.id);
+        var resources = await getUsersResources(player.id);
+        VueApp.resources = resources;
+        VueApp.playersCreatures = creatures;
+        var items = await fetchItems();
+        VueApp.items = items;
+        processSheet(data.characters, mappings);
+      }
+    main();
+    
+</script>
+<style>
+    * {
+    
+        font-family: 'IM Fell English SC', serif;
+      
+}
+
+
+.stat_block {
+
+  background-color: #f5f5f5;
+    border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 3em;
+
+}
+
+.parchment {
+
+  display: flex;
+  flex-direction: column;
+  
+    padding: 2em;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.parchment_header {
+
+    font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+    
+}
+
+.img-border {
+
+    border: 5px ridge #A49319;
+
+}
+</style>

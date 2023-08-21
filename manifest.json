@@ -1,24 +1,29 @@
 {
   "manifestVersion": 1,
-  "name": "Generic Character Sheet",
-  "entryPoint": "/sheet.html",
+  "name": "5E Character Sheets",
+  "entryPoint": "/index.html",
+"api": {
   "version": "0.1",
-  "descriptionFilePath": "/readme.md",
-  "api": {
-    "version": "0.1",
-    "initTimeout": 10,
-    "subscriptions": {
-      "symbiote": {
-        "onStateChangeEvent": "onStateChangeEvent"
-      }
+  "initTimeout": 10,
+  "subscriptions": {
+    "symbiote": {
+      "onStateChangeEvent": "onStateChangeEvent"
+    },
+    "picking": {
+      "onPickingEvent": "handlePickingEvent"
+    },
+    "dice": {
+      "onRollResults": "handleRollResult"
     }
-  },
-  "environment": {
-    "webViewBackgroundColor": "#000000",
-    "extras": [
-      "fonts",
-      "icons",
-      "colorStyles"
-    ]
+    
+    
   }
+},
+"environment": {
+  "webViewBackgroundColor": "#000000",
+  "extras": [
+    "fonts",
+    "icons"
+  ]
+}
 }
