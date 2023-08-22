@@ -250,3 +250,16 @@ async function handleRollResult(rollEvent) {
   
 
 }
+
+async function unEquipItemFromCharacterSheet(CharacterID, itemID) {
+
+  var response = await fetch(`http://localhost:3000/Characters/${CharacterID}/Items/${itemID}/Unequip`,{
+    method: 'POST', // Use 'PUT' if updating instead of creating
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  });
+  var data = await response.json();
+  return data;
+
+}

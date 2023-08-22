@@ -92,9 +92,9 @@
                 <div v-for="(value, key) in skills" :key="key" class="section-skills">
                   <label>{{ value.name }}</label> 
                 | {{ shortenStat(value.associated_stat) }}
-                  <span v-if="character.sheet.skills.value">
-                  <span v-if="findSkillProf(character.sheet.skills.value, value.name)">| <b>proficient</b></span>
-                </span>
+                <template v-if="character.sheet.proficiencies.value != null">
+                  <span v-if="findSkillProf(character.sheet.proficiencies.value.skill, value.id)">| <b>proficient</b></span>
+                </template>
                 </div>
             </div>
             <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'M'" class="section-header mb-1">
@@ -112,7 +112,7 @@
                     <span v-if="item.type_id === 2">{{ item.attributes.damage }} {{ item.attributes.damage_type }} damage.</span>
                     <button class="bg-red-400 w-3/6 text-white font-bold mb-2 rounded">Sell</button>
                     <button v-if="(item.type_id === 1 || item.type_id === 2 || item.type_id === 4) && (item.sheets_items.isEquipped === null || item.sheets_items.isEquipped === false)" class="w-3/6 bg-green-400 text-white font-bold rounded">Equip</button>
-                    <button v-else-if="(item.type_id === 1 || item.type_id === 2 || item.type_id === 4) && item.sheets_items.isEquipped === true" class="w-3/6 bg-green-400 text-white font-bold rounded">Unequip</button>
+                    <button v-else-if="(item.type_id === 1 || item.type_id === 2 || item.type_id === 4) && item.sheets_items.isEquipped === true" class="w-3/6 bg-green-400 text-white font-bold rounded" @click.prevent="unEquipItem(character.id, item.id)">Unequip</button>
                     <button v-else-if="item.type_id === 3" class="w-3/6 bg-green-400 text-white font-bold rounded" type="button" @click.prevent="useConsumable(item, character.id, 'item')">Consume</button>
                     <hr class="bg-black border-black mt-1 mb-2" />
                     </div>
@@ -147,7 +147,7 @@
                         <span>Main Hand:</span>
                         <span>{{ item.name }}</span>
                       </div>
-                      <button class=" w-3/6 bg-red-400 text-white font-bold rounded">un-equip</button>
+                      <button class=" w-3/6 bg-red-400 text-white font-bold rounded" @click.prevent="unEquipItem(character.id, item.id)">un-equip</button>
                   </div>
                 </template>
 
@@ -315,8 +315,9 @@ function onStateChangeEvent(msg) {
     calculateModifier(abilityScore) {
       return Math.floor((abilityScore - 10) / 2);
     },
-    findSkillProf(skills, skillName) {
-      return skills.find(skill => skill.name === skillName);
+    findSkillProf(skills, id) {
+
+      return skills.includes(id)
     },
     shortenStat(stat) {
       return stat.substring(0, 3).toUpperCase();
@@ -512,6 +513,22 @@ async removeBuff(characterID, buffID) {
   await removeBuffFromCharacterSheet(characterID, buffID);
   VueApp.refreshCreatures();
 
+},
+async equipItem(characterID, itemID) {
+  await equipItemToCharacterSheet(characterID, itemID);
+
+
+},
+async unEquipItem(characterID, itemID) {
+  // this function will unequip an item from the character sheet, and then refresh the character sheet.
+  await unEquipItemFromCharacterSheet(characterID, itemID);
+  // once the item has been unequipped, we need to remove any buff it was providing
+  // The item will have an attribute of "buff_id" which will be the id of the buff in the buffs table.
+  // we need to remove the buff from the character sheet.
+  let character = VueApp.characters.find(character => character.id == characterID);
+  let item = character.sheet.items.value.find(item => item.id == itemID);
+  await removeBuffFromCharacterSheet(characterID, item.attributes.buff_id);
+  VueApp.refreshCreatures();
 },
 getEquippedItemForBuff(characterID, buffID) {
   // this will return true if the character has the item equipped that is required for the buff, it means an item being equip is causing the buff and the item needs to be unqeuipped to remove it.
