@@ -32,6 +32,7 @@
         <button class="bg-blue-500 w-11/12 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" v-else @click="setActiveSheet(critter.id)">View Sheet</button>
         </div>
         </div>
+        <span class="text-white">{{ updateMessage  }}</span>
         <div class="w-12/12" v-for="(character, index) in characters" v-if="character.sheet != null" :key="index" v-show="activeSheet == character.id">
           <form :id="character.id" class="parchment mt-3 w-full">
             <div class="parchment_header flex justify-between">
@@ -67,9 +68,10 @@
              >
               Core Stats
             </span>
-              <span @click="activeSheetTab = 'inventory'"  :class="[ 'inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'inventory' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Inventory</span>
-              <span @click="activeSheetTab = 'spells'"  :class="[ 'inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'spells' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Spells</span>
-              <span @click="activeSheetTab = 'bio'"  :class="[ 'inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'bio' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Bio</span>
+              <span @click="activeSheetTab = 'inventory'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'inventory' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Inventory</span>
+              <span @click="activeSheetTab = 'spells'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'spells' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Spells</span>
+              <span @click="activeSheetTab = 'bio'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'bio' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Bio</span>
+              <span @click="activeSheetTab = 'buffs'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'buffs' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Buffs & Gear</span>
             </div>
             <div class="flex flex-col md:flex-row w-full mt-2" v-show="activeSheetTab === 'core'">
             <div class="flex flex-wrap w-full mb-1">
@@ -109,8 +111,9 @@
                     <span>{{ item.sheets_items.quantity }} x <span class="font-bold" v-if="item.sheets_items.quantity === 1">{{ item.name }}</span><span class="font-bold" v-else>{{ item.name }}s</span> - {{ item.description}}</span>
                     <span v-if="item.type_id === 2">{{ item.attributes.damage }} {{ item.attributes.damage_type }} damage.</span>
                     <button class="bg-red-400 w-3/6 text-white font-bold mb-2 rounded">Sell</button>
-                    <button v-if="item.type_id === 1 || item.type_id === 2 || item.type_id === 4" class=" w-3/6 bg-green-400 text-white font-bold rounded">Equip</button>
-                    <button v-if="item.type_id === 3" class=" w-3/6 bg-green-400 text-white font-bold rounded" type="button" @click.prevent="useConsumable(item, character.id, 'item')">Consume</button>
+                    <button v-if="(item.type_id === 1 || item.type_id === 2 || item.type_id === 4) && (item.sheets_items.isEquipped === null || item.sheets_items.isEquipped === false)" class="w-3/6 bg-green-400 text-white font-bold rounded">Equip</button>
+                    <button v-else-if="(item.type_id === 1 || item.type_id === 2 || item.type_id === 4) && item.sheets_items.isEquipped === true" class="w-3/6 bg-green-400 text-white font-bold rounded">Unequip</button>
+                    <button v-else-if="item.type_id === 3" class="w-3/6 bg-green-400 text-white font-bold rounded" type="button" @click.prevent="useConsumable(item, character.id, 'item')">Consume</button>
                     <hr class="bg-black border-black mt-1 mb-2" />
                     </div>
                 </div>
@@ -126,6 +129,36 @@
                   </div>
 
                 </div>
+              <div class="flex flex-col md:flex-row" v-show="activeSheetTab === 'buffs'">
+                <span>Equipment</span>
+                <!-- loop through character.sheet.items.value which have sheet_items.isEquipped set as true  -->
+                    <!-- we must process this array further to ensure only one of each equip item appears.-->
+                <template v-for="(item) in character.sheet.items.value">
+                  <div v-if="item.sheets_items.isEquipped" class="flex flex-col">
+                      <div v-if="item.sheets_items.slot == 'helmet'">
+                        <span>Helmet:</span>
+                        <span>{{ item.name }}</span>
+                       </div>
+                        <div v-else-if="item.sheets_items.slot == 'armour'">
+                        <span>Armour:</span>
+                        <span>{{ item.name }}</span>
+                      </div>
+                      <div v-else-if="item.sheets_items.slot == 'mainHand'">
+                        <span>Main Hand:</span>
+                        <span>{{ item.name }}</span>
+                      </div>
+                      <button class=" w-3/6 bg-red-400 text-white font-bold rounded">un-equip</button>
+                  </div>
+                </template>
+
+                <hr class="bg-black border-black mt-1 mb-2" />
+                <span>Buffs</span>
+                  <div v-for="(value, key) in character.sheet.buffs.value" :key="key" class="section-header mb-1 flex flex-col">
+                    <p v-if="value.name">{{ removeUnderline(value.name) }} : {{ value.effects.meta }}</p>
+                    <button v-if="getEquippedItemForBuff(character.id, value.id)" class="bg-red-400 w-3/6 text-white font-bold mb-2 rounded">Unequip to remove</button>
+                    <button v-else class="bg-red-400 w-3/6 text-white font-bold mb-2 rounded" @click.prevent="removeBuff(character.id, value.id)">Remove Buff</button>
+              </div>
+              </div>  
 
             <button class="bg-blue-500 w-24 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @click.prevent="updateSheet(character.sheets.id)">Update</button>
           </form>
@@ -269,6 +302,7 @@ function onStateChangeEvent(msg) {
         mappings: [],
         items: [],
         rollData: [],
+        updateMessage: "",
       },
       computed: {
       filteredblocks() {
@@ -434,12 +468,69 @@ displayResource(resource) {
       // we also need to allow for a diceRoll in talespire.
       // get first part of .consume (before comma)
       console.log(item);
+      if (item.attributes.hasRoll == true) {
       let string = { "name": item.name, "roll": item.attributes.consume};
       dice = await TS.dice.putDiceInTray([string]);
       // put the item data and the dice roll into a string and add it to the rollData array
       // this will be used in the rollDice function to roll the dice.
       this.rollData.push({"character_id": characterID,"item": item, "rollID": dice, "type": typeString});
-},  
+      }
+      else {
+        // If the potion doesn't require a roll of the dice then we need to look at the item attributes and see what it does.
+        switch(item.attributes.type) {
+            case "buff": {
+              // If the item is a buff, then we need to get the "buff_id" and do a lookup in the buffs table via the API.
+              let buff = await getBuff(item.attributes.buff_id);
+              // buffs will have X keys, but will either be the name of a field in the character sheet, or a "meta" key which functions as a description.
+              // we need to loop through the keys and if the key is a field in the character sheet, then we need to update the character sheet via the API
+              // if the key is "meta" then we need to add the value to the meta array in the character sheet.
+              for (const [key, value] of buff.effects) {
+                if (key == "meta") {
+                  // add the meta value to the meta array in the character sheet.
+                  //addBuffToCharacterSheet(characterID, buff)
+                }
+                else {
+                  // update the character sheet via the API
+                  let data = { key: value};
+                  let update = await updateCharacterSheet(characterID, data);
+
+                }
+              }
+              let character = VueApp.characters.find(character => character.id == characterID);
+              VueApp.updateMessage = item.name + " was consumed by "  + character.name;
+            }
+
+
+        }
+        // deduct the consumable
+        await deductItemFromPlayerSheet(item.id, characterID, 1);
+
+      }
+},
+async removeBuff(characterID, buffID) {
+
+  await removeBuffFromCharacterSheet(characterID, buffID);
+  VueApp.refreshCreatures();
+
+},
+getEquippedItemForBuff(characterID, buffID) {
+  // this will return true if the character has the item equipped that is required for the buff, it means an item being equip is causing the buff and the item needs to be unqeuipped to remove it.
+  let character = VueApp.characters.find(character => character.id == characterID);
+  if(character.sheet != null) {
+    console.log(character.sheet.items.value);
+  // search for all items that are equipped and return true if an equip item matches the buffID,character.sheet.items.value is the array to search
+  let equippedItem = character.sheet.items.value.find(item => item.sheets_items.isEquipped == true && item.attributes.type == "buff" && item.attributes.buff_id == buffID);
+  console.log(equippedItem);
+  if (equippedItem != null) {
+    return true;
+  }
+  else {
+    return false;
+
+  }
+}
+
+}
       },directives: {
     enlarge: {
       bind(el, binding) {
@@ -480,7 +571,9 @@ displayResource(resource) {
         // we will edit the data.characters.sheets object in place, and return it.
         // for each character data[x]
         data.forEach(function (character, index) {
+        console.log("processing sheet")
         console.log(character);
+
         // First we need to get the keys of the data.characters.sheets object, and then we can loop through them.
         if(character.picture && character.picture.data) {
         var image = new Blob([new Uint8Array(character.picture.data)]);
@@ -508,6 +601,27 @@ displayResource(resource) {
             value: character.sheet[key],
             };
         }
+        if (character.sheet.items != null) {
+        character.sheet.items.value.forEach(function (item, index) {
+            // if shees_items.is_equipped == true AND has a an attributes.type of "buff" then we need to add the buffs to the character sheet
+            if (item.sheets_items.isEquipped == true && item.attributes.type == "buff") {
+            // if a buff exists in character sheet for this equip item, do nothing, else add the buff to the character sheet.
+            if(character.sheet.buffs.value.find((element) => element.id == item.attributes.buff_id)) {
+                // do nothing
+
+            }
+            else {
+                // addBuffToCharacterSheet
+                let addBuff = addBuffToCharacterSheet(character.id, item.attributes.buff_id);
+
+
+
+            }
+ 
+
+            }
+        });
+      }
       }
     });
     // push data into vue app.
@@ -585,7 +699,27 @@ displayResource(resource) {
 }
 
 .enlarge-animation {
-  transition: font-size 0.5s;
-  font-size: 1.5em;
+  /* this animation should make the text larger */
+  transform-origin: top left;
+  animation: enlargeInput 2s forwards; /* Apply the animation */
+}
+
+@keyframes enlargeInput {
+  0% {
+    transform: scale(1);
+    /* Start with original size */
+  
+  }
+  50% {
+    transform: scale(1.3); /* Reach the larger size at 50% */
+    /* Make the element invisible */
+    font-weight: bold;
+  }
+  100% {
+    transform: scale(1); /* End back at original size */
+    /* Restore visibility */
+    font-weight: initial;
+  }
+
 }
 </style>

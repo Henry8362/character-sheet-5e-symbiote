@@ -147,6 +147,48 @@ async function updateCharacterSheet(CharacterID, data) {
 
 }
 
+
+// retrieve a buff from the API
+async function getBuff(id) {
+
+  var response = await fetch(`http://localhost:3000/Buffs/${id}`);
+  var data = await response.json();
+  return data;
+
+
+
+}
+
+async function addBuffToCharacterSheet(CharacterID, buff_id) {
+  
+  var response = await fetch(`http://localhost:3000/Characters/${CharacterID}/Buffs/${buff_id}/Add`,{
+    method: 'POST', // Use 'PUT' if updating instead of creating
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  });
+  var data = await response.json();
+  return data;
+
+
+}
+
+async function removeBuffFromCharacterSheet(CharacterID, buff_id) {
+
+  var response = await fetch(`http://localhost:3000/Characters/${CharacterID}/Buffs/${buff_id}/Delete`,{
+    method: 'POST', // Use 'PUT' if updating instead of creating
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  });
+  var data = await response.json();
+  return data;
+
+
+}
+
+
+
 async function handleRollResult(rollEvent) {
 
     let result = rollEvent.payload.resultsGroups[0].result.results;
@@ -168,7 +210,7 @@ async function handleRollResult(rollEvent) {
         
         // if it is a consumable
         if (data[0].type == "item") {
-          // determine the attribute type 
+          // determine the attribute type
           switch(data[0].item.attributes.type) {
             case "heal":
               let bonusHealing = data[0].item.attributes.bonus;
@@ -181,10 +223,13 @@ async function handleRollResult(rollEvent) {
               await deductItemFromPlayerSheet(itemID, characterID, 1);
               // add the healing to the character sheet
               totalHealing = { "healing": totalHealing };
-              console.log("updating character sheet");
               await updateCharacterSheet(characterID, totalHealing);
-              console.log("healing added to character sheet");
-            break;
+              // find the character by characterID and get the name:
+              let character = VueApp.characters.find(character => character.id == characterID);
+              VueApp.updateMessage = data[0].item.name + " healed "  + character.name + " for " + totalHealing.healing + " hit points.";
+              break;
+            case "speed":
+              break;
 
 
 
