@@ -69,7 +69,7 @@
               Core Stats
             </span>
               <span @click="activeSheetTab = 'inventory'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'inventory' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Inventory</span>
-              <span @click="activeSheetTab = 'spells'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'spells' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Spells</span>
+              <span @click="activeSheetTab = 'spells'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'spells' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Spells & Attacks</span>
               <span @click="activeSheetTab = 'bio'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'bio' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Bio</span>
               <span @click="activeSheetTab = 'buffs'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'buffs' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Buffs & Gear</span>
             </div>
@@ -111,14 +111,54 @@
                     <span>{{ item.sheets_items.quantity }} x <span class="font-bold" v-if="item.sheets_items.quantity === 1">{{ item.name }}</span><span class="font-bold" v-else>{{ item.name }}s</span> - {{ item.description}}</span>
                     <span v-if="item.type_id === 2">{{ item.attributes.damage }} {{ item.attributes.damage_type }} damage.</span>
                     <button class="bg-red-400 w-3/6 text-white font-bold mb-2 rounded">Sell</button>
-                    <button v-if="(item.type_id === 1 || item.type_id === 2 || item.type_id === 4) && (item.sheets_items.isEquipped === null || item.sheets_items.isEquipped === false)" class="w-3/6 bg-green-400 text-white font-bold rounded">Equip</button>
+                    <button v-if="(item.type_id === 1 || item.type_id === 2 || item.type_id === 4) && (item.sheets_items.isEquipped === null || item.sheets_items.isEquipped === false) && (item.attributes.slots === null || item.attributes.slots == undefined)" class="w-3/6 bg-green-400 text-white font-bold rounded" @click.prevent="equipItem(character.id, item.id)">Equip</button>
+                    <div v-if="(item.type_id === 1 || item.type_id === 2 || item.type_id === 4) && (item.sheets_items.isEquipped === null || item.sheets_items.isEquipped === false) && (item.attributes.slots != null)">
+                    <span class="w-3/6">Equip as:</span>
+                    <select v-model="selectedSlot">
+                      <option v-for="(slot, key) in item.attributes.slots" :key="key" :value="slot">{{ slot }}</option>
+                    </select>
+                    <button class="bg-green-400 rounded text-white p-1" @click.prevent="equipItem(character.id, item.id, selectedSlot)">Equip</button>
+                    </div>
                     <button v-else-if="(item.type_id === 1 || item.type_id === 2 || item.type_id === 4) && item.sheets_items.isEquipped === true" class="w-3/6 bg-green-400 text-white font-bold rounded" @click.prevent="unEquipItem(character.id, item.id)">Unequip</button>
                     <button v-else-if="item.type_id === 3" class="w-3/6 bg-green-400 text-white font-bold rounded" type="button" @click.prevent="useConsumable(item, character.id, 'item')">Consume</button>
                     <hr class="bg-black border-black mt-1 mb-2" />
                     </div>
                 </div>
                 </div>
-                <div class="flex flex-col md:flex-row" v-show="activeSheetTab === 'spells'"></div>
+                <div class="flex flex-col md:flex-row" v-show="activeSheetTab === 'spells'">
+                    <label class="w-full">Attacks</label>
+                          
+                        <div class="flex flex-col" v-if="character.sheet.items != null || character.sheet.items != undefined" v-for="(item, key) in character.sheet.items.value.filter(filterByEquipped)">
+                            <div v-if="item.attributes.damage != null">
+                              <span>{{item.sheets_items.slot}}: {{ item.name }} | {{ item.attributes.damage }} {{ item.attributes.damage_type }}
+                                <span v-if="character.sheet.proficiencies.value.weapon.includes(item.attributes.weapon_type)"></span>
+                              </span>
+                              <button class="bg-green-400 rounded text-white p-1" @click.prevent="makeAttackRoll(character.id, item, 'attack')">Attack</button>
+                              <button class="bg-green-400 rounded text-white p-1" @click.prevent="makeDamageRoll(character.id, item, 'damage')">Damage</button>
+                              
+                            </div>
+                          </div>
+                    <!-- Here we need to look at a characters equipped items (all slots) and see if they have an attack associated with them
+                    Attacks will have a "damage" value, which will be a dice roll, and a "damage_type" value, which will be a string. e.g. 2d6 Slashing Damage.
+                     We will also need to determine, from their proficiencies, if they are proficient with the weapon and if they are add their profiency bonus. 
+                      Then we need to factor in any buffs that might also provide a modifier.
+                      {"slots": ["mainHand", "offHand"], "damage": "1d6", "weight": 2, "damage_type": "slashing", "weapon_type": "simple", "isEquippable": true}
+                    -->
+                    <label class="w-full">Spells</label>
+                    <div v-if="character.sheet.spells.value != undefined || character.sheet.spells.value != null">
+                          <span>Cantrips known: {{ character.sheet.spells.value.cantrips_known }}</span>
+                          <span>Spells known: {{ character.sheet.spells.value.spells_known }}</span>
+                          <div v-for="(spell_slot, key) in character.sheet.spells.value.spell_slots">
+                            <span>Level {{ key }}: {{ spell_slot }}</span>
+                          </div>
+                          <div v-if="character.sheet.spells.value.spell_list != undefined" v-for="(spell, key) in character.sheet.spells.value.spell_list">
+                            <span>{{ getSpell(spell).name }}</span>
+                            <span>{{ getSpell(spell).description }}</span>
+                            <span>{{ getSpell(spell).school }}</span>
+                            <span>{{ getSpell(spell).level }}</span>
+                          </div>
+                  </div>
+                </div>
                 <div class="flex flex-col md:flex-row" v-show="activeSheetTab === 'bio'">
                   <div class="w-full mt-2">
                     <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'F'" class="section-header mb-1 flex flex-col">
@@ -179,6 +219,8 @@
 </div>
 <div class="flex w-full">
   <ul id="block-list" class="w-2/6 ml-3 mt-3 text-white">
+    <span>Attack as selected monster.</span>
+    <button @click.prevent="blocksFetchMonster()" class="bg-yellow-400 w-3/6 text-white font-bold mb-2 rounded">Fetch</button>
       <li class="text-3xl underline mb-1">Statblocks:</li>
       <li v-for="(block, index) in filteredblocks" :key="index" class="text-2xl mb-1 border-b-4 border-black">
         <a href="#" @click="loadBlock(block.id)">{{ block.name }}</a>
@@ -237,7 +279,11 @@
     <span class="text-2xl mt-1 mb-1 border-b-2 border-black">Actions</span>
     <template v-for="(array) in loadedBlock.actions">
       <template v-for="(values, keys) in array">
-    <span class="text-1xl mt-1"><b>{{ keys }}: </b>{{ values }}</span>
+    <span class="text-1xl mt-1"><b>{{ keys }}: </b>{{ values.description }}</span>
+    <div class="flex">
+        <button class="bg-red-400 w-3/6 text-white mr-1 font-bold mb-2 rounded" @click.prevent="rollMonsterActionHit(values.attack_bonus, keys, 'monsterAttack')">Roll Hit</button>
+        <button class="bg-red-400 w-3/6 text-white font-bold mb-2 rounded" @click.prevent="rollMonsterActionDamage(values.man_dam, value.man_dam_bonus)">Roll Damage</button>
+      </div>
     </template> 
     </template>
   </div>
@@ -303,6 +349,8 @@ function onStateChangeEvent(msg) {
         items: [],
         rollData: [],
         updateMessage: "",
+        selectedSlot: '',
+        DMselectedCreature: {},
       },
       computed: {
       filteredblocks() {
@@ -514,9 +562,27 @@ async removeBuff(characterID, buffID) {
   VueApp.refreshCreatures();
 
 },
-async equipItem(characterID, itemID) {
-  await equipItemToCharacterSheet(characterID, itemID);
-
+async addBuff(characterID, buffID) {
+  // this function will add a buff to the character sheet, and then refresh the character sheet.
+  await addBuffToCharacterSheet(characterID, buffID);
+  VueApp.refreshCreatures();
+},
+async equipItem(characterID, itemID, slot) {
+  await equipItemToCharacterSheet(characterID, itemID, slot);
+ // we need to get the buff/s from the item and add them to the character sheet.
+      // from the itemID we need to get the item from the items array.
+  let itemFromDB = await getItem(itemID);
+  console.log(itemFromDB)
+  // we need to get the buff/s from the item and add them to the character sheet.
+  if(itemFromDB.attributes.buff_id != null) {
+    // if the item has a buff_id, then we need to add the buff to the character sheet.
+    let buff = await VueApp.addBuff(characterID, itemFromDB.attributes.buff_id);
+    console.log(buff)
+  }
+  console.log("Refreshing after equip")
+  // not working here for some reason
+  VueApp.refreshCreatures();
+  VueApp.updateMessage = VueApp.characters.find(character => character.id == characterID).name + " equipped " + itemFromDB.name + " as their " + slot + ".";
 
 },
 async unEquipItem(characterID, itemID) {
@@ -547,7 +613,67 @@ getEquippedItemForBuff(characterID, buffID) {
   }
 }
 
-}
+},
+async getSpell(spellID) {
+  // this function will return the spell from the spells array.
+  let spell = await getSpellFromDB(spellID);
+  return spell;
+},
+filterByEquipped(item) {
+  // takes an array of items and only return the item if it is equipped.
+  return item.sheets_items.isEquipped == true;
+},
+async makeAttackRoll(characterID, item, typeString) {
+  // always a d20 roll
+  let string = { "name": "Attack with " + item.name, "roll": "1d20" };
+  dice = await TS.dice.putDiceInTray([string]);
+  this.rollData.push({"character_id": characterID,"item": item, "rollID": dice, "type": typeString});
+
+},
+async makeDamageRoll(characterID, item, typeString) {
+
+  // calculate the amount of dice to roll.
+  let string = { "name": "Damage with " + item.name, "roll": item.attributes.damage };
+  dice = await TS.dice.putDiceInTray([string]);
+  this.rollData.push({"character_id": characterID,"item": item, "rollID": dice, "type": typeString});
+
+
+},
+async blocksFetchMonster() {
+
+  this.loadedBlock = {};
+  let details = await TS.creatures.getSelectedCreatures();
+  details = await TS.creatures.getMoreInfo(details);
+  this.DMselectedCreature  = details[0];
+  // for the selected creature, find the name and search the blocks array for a close matching name
+  this.blocks.forEach(function (block, index) {
+    let blockNameLower = block.name.toLowerCase();
+    let searchTermParts = details[0].name.toLowerCase().split(' ');
+    let  foundMatch = searchTermParts.some(part => blockNameLower.includes(part));
+    if (foundMatch) {
+      // if the block name includes the details name, then load the block.
+      VueApp.loadBlock(block.id);
+      return;
+    }
+    else {
+
+      console.log("no match found.");
+
+    }
+  });
+
+},
+async rollMonsterActionHit(attackBonus, attackName, typeString) {
+  
+  let string = { "name": this.DMselectedCreature.name + " attacks with " + attackName, "roll": "1d20" };
+  dice = await TS.dice.putDiceInTray([string]);
+  this.rollData.push({"creature": this.sDMselectedCreature,"bonus": attackBonus , "rollID": dice, "type": typeString});
+
+
+
+
+},
+
       },directives: {
     enlarge: {
       bind(el, binding) {

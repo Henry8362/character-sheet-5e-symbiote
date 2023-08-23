@@ -56,6 +56,15 @@ async function fetchItems() {
 
 }
 
+async function getItem(id) {
+
+  var response = await fetch(`http://localhost:3000/Items/${id}`)
+  var data = await response.json();
+  return data;
+
+
+
+}
 
 async function  getPlayers() {
 
@@ -239,6 +248,79 @@ async function handleRollResult(rollEvent) {
 
         }
         else if (data[0].type == "attack") {
+          let characterID = data[0].character_id;
+          let character = VueApp.characters.find(character => character.id == characterID);
+          
+          let modifier = 0;
+          // if weapon is melee or ranged via .attributes.category
+          if (data[0].item.attributes.category == "melee") {
+              // set modifer to strength, we need to use the DND algorithm to determine the + or - to the roll.
+              modifier = VueApp.calculateModifier(character.sheet.strength.value);
+
+          }
+          else if (data[0].item.attributes.category == "ranged") {
+              // set modifier to dexterity
+              modifier =  parseInt(VueApp.calculateModifier(character.sheet.dexterity.value));
+
+          }
+          // then check if it is finesse
+          if (data[0].item.attributes.isFinesse == true) {
+            // in theory we should let the player choose between strength and dexterity, but for now we will just use dexterity.
+            modifier =  parseInt(VueApp.calculateModifier(character.sheet.dexterity.value));
+          }
+          // now we need to check if the player is proficient with the weapon, we can do this by seeing if the items weapon_type attribute is in the players proficiencies.
+          character.sheet.proficiencies.value.weapon.forEach(function (item) {
+            if (item == data[0].item.attributes.weapon_type) {
+              // if it is, add the proficiency bonus to the modifier
+              modifier += parseInt(character.sheet.prof_bonus.value);
+              // stop the loop
+              return;
+            }
+            
+          });
+          let roll = character.name + " rolled a " + parseInt(total) + " with a " + modifier + " for a total of " + (parseInt(total) + parseInt(modifier)) + " to hit.";
+          await TS.chat.send(roll, "board");
+          
+        }
+        else if (data[0].type == "damage") {
+
+          let modifier = 0;
+          // if weapon is melee or ranged via .attributes.category
+          if (data[0].item.attributes.category == "melee") {
+              // set modifer to strength, we need to use the DND algorithm to determine the + or - to the roll.
+              modifier = VueApp.calculateModifier(character.sheet.strength.value);
+
+          }
+          else if (data[0].item.attributes.category == "ranged") {
+              // set modifier to dexterity
+              modifier =  parseInt(VueApp.calculateModifier(character.sheet.dexterity.value));
+
+          }
+          // then check if it is finesse
+          if (data[0].item.attributes.isFinesse == true) {
+            // in theory we should let the player choose between strength and dexterity, but for now we will just use dexterity.
+            modifier =  parseInt(VueApp.calculateModifier(character.sheet.dexterity.value));
+          }
+          
+
+            let roll = data[0].item.name + " hit for " + (parseInt(total) + parseInt(modifier)) + " hit points.";
+            await TS.chat.send(roll, "board");
+
+            
+
+
+        }
+        else if  (data[0].type == "monsterAttack") {
+          // this indicates the DM made a roll for a monster attack. this.rollData.push({"creature": DMselectedCreature.id,"bonus": attackBonus , "rollID": dice, "type": typeString});
+          let hiddenFromPlayers = true; 
+          let modifier = 0;
+          modifier = data[0].bonus;
+          if (hiddenFromPlayers == true) {
+          await TS.symbiote.sendNotification(data[0].creature.name + "Rolled a hit", parseInt(total) + " with a +" + modifier + " for a total of " + (parseInt(total) + parseInt(modifier)));
+          }
+          else {
+          await TS.chat.sendAsCreature(data[0].creature.name + " rolled a " + parseInt(total) + " with a +" + modifier + " for a total of " + (parseInt(total) + parseInt(modifier)) + " to hit.", data[0].creature.id,"board");
+          }
 
         }
         //unset VueApp.rollData
@@ -261,5 +343,30 @@ async function unEquipItemFromCharacterSheet(CharacterID, itemID) {
   });
   var data = await response.json();
   return data;
+
+}
+
+async function equipItemToCharacterSheet(CharacterID, itemID, slot) {
+      
+  var response = await fetch(`http://localhost:3000/Characters/${CharacterID}/Items/${itemID}/equip/${slot}`,{
+    method: 'POST', // Use 'PUT' if updating instead of creating
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  });
+  var data = await response.json();
+  return data;
+
+}
+
+// SPELLS
+
+async function getSpellFromDB(id) {
+
+  var response = await fetch(`http://localhost:3000/Spells/${id}`);
+  var data = await response.json();
+  return data;
+
+
 
 }

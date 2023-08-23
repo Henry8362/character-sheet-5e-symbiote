@@ -17,8 +17,11 @@
     }
     
     
-  }
-},
+  },
+  "interop": {
+    "id": "6fa2c6f6-bf13-44de-93ec-8c6482184cfd"
+}
+}, 
 "environment": {
   "webViewBackgroundColor": "#000000",
   "extras": [
