@@ -125,13 +125,14 @@ async function addItemToPlayerSheet(itemID, CharacterID) {
     },
 
   });
+  return response;
 
 
 }
 
-async function deductItemFromPlayerSheet(itemID, CharacterID, quantity) {
+async function deductItemFromPlayerSheet(itemID, CharacterID, sheetItemID) {
 
-  var response = await fetch(`http://localhost:3000/Characters/${CharacterID}/Items/${itemID}/deduct/${quantity}`, {
+  var response = await fetch(`http://localhost:3000/Characters/${CharacterID}/Items/${itemID}/deduct/${sheetItemID}`, {
     method: 'POST', // Use 'PUT' if updating instead of creating
     headers: {
       'Content-Type': 'application/json'
@@ -139,7 +140,7 @@ async function deductItemFromPlayerSheet(itemID, CharacterID, quantity) {
 
 
 });
-return response;s
+return response;
 }
 
 async function updateCharacterSheet(CharacterID, data) {
@@ -316,6 +317,7 @@ async function handleRollResult(rollEvent) {
           let modifier = 0;
           modifier = data[0].bonus;
           if (hiddenFromPlayers == true) {
+            // doesn't seem to send at the moment.
           await TS.symbiote.sendNotification(data[0].creature.name + "Rolled a hit", parseInt(total) + " with a +" + modifier + " for a total of " + (parseInt(total) + parseInt(modifier)));
           }
           else {
