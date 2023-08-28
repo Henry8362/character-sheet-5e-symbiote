@@ -87,6 +87,7 @@ async function getUsersCreatures(e) {
   playersCreatures = await TS.creatures.getUniqueCreaturesInThisCampaign();
   playersCreatures = await TS.creatures.getMoreInfo(playersCreatures);
   playersCreatures = playersCreatures.filter(creature => creature.ownerIds.includes(e));
+  console.log(playersCreatures)
   return playersCreatures;
 
 }
