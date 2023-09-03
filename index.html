@@ -74,6 +74,7 @@
               <span @click="activeSheetTab = 'bio'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'bio' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Bio</span>
               <span @click="activeSheetTab = 'buffs'"  :class="[ 'inline-block p-3 border-b-2 rounded-t-lg hover:text-gray-600 dark:hover:text-gray-300', activeSheetTab === 'buffs' ? 'border-blue-500 text-blue-500' : 'border-transparent']">Buffs & Gear</span>
             </div>
+            <hr class="bg-black border-black mb-2" />
             <div class="flex flex-col md:flex-row w-full mt-2" v-show="activeSheetTab === 'core'">
             <div class="flex flex-wrap w-full mb-1">
               <div v-for="(value, key) in character.sheet" :key="key"  v-if="value.type == 'C'" class="mb-1 w-3/6">
@@ -105,10 +106,11 @@
                     <input class="w-2/3" type="text" :key="key" :name="key" v-model="value.value" />
                     </div>
               </div>
+              <button class="bg-blue-500 w-24 hover:bg-blue-700 text-white font-bold mt-2 py-2 px-4 rounded" @click.prevent="updateSheet(character.sheets.id)">Update</button>
               </div>
               <div class="flex flex-col mb-1" v-show="activeSheetTab === 'inventory'">
                   <hr class="bg-black border-black" />
-                  <div class="flex md:flex-row w-full flex-wrap border-solid border-2 bg-slate-800  border-y-slate-700 border-x-slate-300 justify-evenly pt-4">
+                  <div class="flex md:flex-row w-full flex-wrap border-solid border-2 bg-slate-800  border-y-slate-700 border-x-slate-300 justify-evenly pt-4 pb-4">
                       <div v-for="(count, itemId) in character.sheet.ItemCounts.value" :key="itemId" 
                       :class="[rarityColors
                       [character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)).item.rarity_id], 'p-1 cursor-pointer border-solid border-4 bg-contain bg-slate-900 m-1 bg-no-repeat flex flex-col justify-between w-1/5 max-w-1/5 h-24']"
@@ -119,7 +121,7 @@
                         <div class="text-white">{{ count }}x</div>
                         <div class="text-white">{{ character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)).item.name }}</div>
                         <div v-if="openMenus[itemId]" class="bg-white p-2 mt-2 rounded shadow h-24 z-0">
-                          <span v-if="character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)).item.type_id === 3" type="button" @click.prevent="useConsumable(item.item, character.id, 'item')">Use 1</span>
+                          <span v-if="character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)).item.type_id === 3" type="button" @click.prevent="useConsumable(character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)), character.id, 'item')">Use 1</span>
                           <span v-else @click.prevent="manageItemType(character, itemId)" class=" p-1">Equip</span>
                           <hr class="bg-black border-black" />
                           <span @click.prevent="manageItemType(character, itemId)" class=" p-1">Manage</span>
@@ -130,33 +132,33 @@
                     
                       </div>
                       </div>
-              <div class="flex mt-2" v-for="(item, key) in character.sheet.managedItems.value">
+              <div class="flex flex-col mt-2" v-for="(item, key) in character.sheet.managedItems.value">
                     <span class="font-bold">{{ item.item.name }}</span>
                     <span v-if="item.item.type_id === 2">{{ item.item.attributes.damage }} {{ item.item.attributes.damage_type }} damage.</span>
                     <button class="bg-red-400 w-3/6 text-white font-bold mb-2 rounded">Sell</button>
-                    <button v-if="(item.item.type_id === 1 || item.item.type_id === 2 || item.item.type_id === 4) && (item.isEquipped === null || item.isEquipped === false) && (item.item.attributes.slots === null || item.item.attributes.slots == undefined)" class="w-3/6 bg-green-400 text-white font-bold rounded" @click.prevent="equipItem(character.id, item.item.id)">Equip</button>
+                    <button v-if="(item.item.type_id === 1 || item.item.type_id === 2 || item.item.type_id === 4) && (item.isEquipped === null || item.isEquipped === false) && (item.item.attributes.slots === null || item.item.attributes.slots == undefined)" class="w-3/6 bg-green-400 text-white font-bold rounded" @click.prevent="equipItem(character.id, item.id)">Equip</button>
                     <div v-if="(item.item.type_id === 1 || item.item.type_id === 2 || item.item.type_id === 4) && (item.isEquipped === null || item.isEquipped === false) && (item.item.attributes.slots != null)">
                     <span class="w-3/6">Equip as:</span>
-                    <select v-model="selectedSlot">
+                    <select v-model="this.selectedSlot">
                       <option v-for="(slot, key) in item.item.attributes.slots" :key="key" :value="slot">{{ slot }}</option>
                     </select>
-                    <button class="bg-green-400 rounded text-white p-1" @click.prevent="equipItem(character.id, item.item_id, selectedSlot)">Equip</button>
+                    <button class="bg-green-400 rounded text-white p-1" @click.prevent="equipItem(character.id, item.id, selectedSlot)">Equip</button>
                     </div>
-                    <button v-else-if="(item.item.type_id === 1 || item.item.type_id === 2 || item.item.type_id === 4) && item.isEquipped === true" class="w-3/6 bg-green-400 text-white font-bold rounded" @click.prevent="unEquipItem(character.id, item.item_id)">Unequip</button>
-                    <button v-else-if="item.item.type_id === 3" class="w-3/6 bg-green-400 text-white font-bold rounded" type="button" @click.prevent="useConsumable(item.item, character.id, 'item')">Consume</button>
+                    <button v-else-if="(item.item.type_id === 1 || item.item.type_id === 2 || item.item.type_id === 4) && item.isEquipped === true" class="w-3/6 bg-green-400 text-white font-bold rounded" @click.prevent="unEquipItem(character.id, item.id)">Unequip</button>
+                    <button v-else-if="item.item.type_id === 3" class="w-3/6 bg-green-400 text-white font-bold rounded" type="button" @click.prevent="useConsumable(item, character.id, 'item')">Consume</button>
                     <hr class="bg-black border-black mt-1 mb-2" />
                     </div>
                 </div>
                 <div class="flex flex-col md:flex-row" v-show="activeSheetTab === 'spells'">
                     <label class="w-full">Attacks</label>
                           
-                        <div class="flex flex-col" v-if="character.sheet.sheetsItems != null || character.sheet.sheetsItems != undefined" v-for="(item, key) in character.sheet.sheetsItems.value.filter(filterByEquipped)">
+                        <div class="flex flex-col mt-1" v-if="character.sheet.sheetsItems != null || character.sheet.sheetsItems != undefined" v-for="(item, key) in character.sheet.sheetsItems.value.filter(filterByEquipped)">
                             <div v-if="item.item.attributes.damage != null">
                               <span>{{item.slot}}: {{ item.item.name }} | {{ item.item.attributes.damage }} {{ item.item.attributes.damage_type }}
                                 <span v-if="character.sheet.proficiencies.value.weapon.includes(item.item.attributes.weapon_type)"></span>
                               </span>
                               <button class="bg-green-400 rounded text-white p-1" @click.prevent="makeAttackRoll(character.id, item.item, 'attack')">Attack</button>
-                              <button class="bg-green-400 rounded text-white p-1" @click.prevent="makeDamageRoll(character.id, item.item, 'damage')">Damage</button>
+                              <button class="bg-green-400 rounded text-white p-1" @click.prevent="makeDamageRoll(character.id, item, 'damage')">Damage</button>
                               
                             </div>
                           </div>
@@ -195,15 +197,19 @@
                   <div v-if="item.isEquipped" class="flex flex-col">
                       <div v-if="item.slot == 'helmet'">
                         <span>Helmet:</span>
-                        <span>{{ item.name }}</span>
+                        <span>{{ item.item.name }}</span>
                        </div>
                         <div v-else-if="item.slot == 'armour'">
                         <span>Armour:</span>
-                        <span>{{ item.name }}</span>
+                        <span>{{ item.item.name }}</span>
                       </div>
                       <div v-else-if="item.slot == 'mainHand'">
                         <span>Main Hand:</span>
-                        <span>{{ item.name }}</span>
+                        <span>{{ item.item.name }}</span>
+                      </div>
+                      <div v-else-if="item.slot == 'offHand'">
+                        <span>Off Hand:</span>
+                        <span>{{ item.item.name }}</span>
                       </div>
                       <button class=" w-3/6 bg-red-400 text-white font-bold rounded" @click.prevent="unEquipItem(character.id, item.id)">un-equip</button>
                   </div>
@@ -217,8 +223,6 @@
                     <button v-else class="bg-red-400 w-3/6 text-white font-bold mb-2 rounded" @click.prevent="removeBuff(character.id, value.id)">Remove Buff</button>
               </div>
               </div>  
-
-            <button class="bg-blue-500 w-24 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @click.prevent="updateSheet(character.sheets.id)">Update</button>
           </form>
         </div>
 </div>
@@ -318,20 +322,22 @@
       <option v-for="(item, key) in items" :key="key" :value="item.id">{{ item.name }}</option>
     </select>
   </div>
+  <div class="flex flex-col w-full">
+    <span class="m-1  text-lg mt-3">Generate a magical item</span>
+    <span class="m-1  text-md mt-3">Here, you can generate a magical item and if you like it, add it to the database.</span>
+    <button class="bg-blue-500 w-3/6 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @click.prevent="generateMagicalItem()">Generate</button>
+  </div>
 </div>
 <!--<div v-show="activeSection === 'resources'" class="flex flex-col w-full items-center justify-center text-white">
 </div> --> 
 <div v-show="activeSection === 'itemDB'" class="flex flex-col bg-white w-full items-center justify-center text-white">
-  <div class="w-auto text-white mt-2">
-    <span class="font-bold text-xl">Items</span>
-  </div>
     <table class="w-auto table-auto text-left text-lg">
       <thead class="bg-gray-500 text-white">
         <th class="px-4 py-2">Name</th>
         <th class="px-4 py-2">Description</th>
         <th class="px-4 py-2">Category</th>
       </thead>
-      <tr v-for="(item, key) in items" class="text-black bg-white"  @click="ShowItemDetails(item.attributes)">
+      <tr v-for="(item, key) in items" class="text-black bg-white border-b border-gray-300"  @click="ShowItemDetails(item.attributes)">
         <td  class="font-bold px-4 py-2">{{ item.name }}</td>
         <td class="px-4 py-2">{{ item.description }}</td>
         <td class="px-4 py-2">{{ item.item_type.name }}</td>
@@ -378,6 +384,10 @@ function onStateChangeEvent(msg) {
             5: 'border-orange-500'
         },
         openMenus: {},
+        basicItems: { 
+          0: "Shortsword", 1: "Shortbow", 2: "Dagger", 3: "Club", 4: "Light Mail"
+
+        }
         
       },
       computed: {
@@ -388,6 +398,27 @@ function onStateChangeEvent(msg) {
     }
   },
       methods: {
+
+    generateMagicalItem() {
+      // Select a random item from the basic items list, for testing though, always select "Light Mail"
+      let item = this.basicItems[4];
+      // We need to get a random buff from the API, for testing we will use the buff for "Adamantine_Armour"
+      let buff = {"id": 4, "name": "adamantine_armour", "effects": {"meta": "This suit of armour is reinforced with adamantine, one of the hardest substances in existence. While you're wearing it, any critical hit against you becomes a normal hit."}, 
+      "keywords": {"prefix_adjectives": "impenetrable, impervious, stalwart",  "suffix_adjectives": "impervious, stalwart"} }
+      // we will worry about rarity later.
+      let rarity = 1;
+      // pick either a prefix or a suffix for the item based on the buff keywords
+      let prefixOrSuffix = Math.floor(Math.random() * 2);
+      // if prefix, pick a random prefix adjective from the buff keywords, if suffix a random suffix adjective
+      let adjective = prefixOrSuffix === 0 ? buff.keywords.prefix_adjectives.split(",")[Math.floor(Math.random() * buff.keywords.prefix_adjectives.split(",").length)] : buff.keywords.suffix_adjectives.split(",")[Math.floor(Math.random() * buff.keywords.suffix_adjectives.split(",").length)];
+      // if prefix capitalize the first letter of the adjective
+      if(prefixOrSuffix === 0) {
+        adjective = adjective.charAt(0).toUpperCase() + adjective.slice(1);
+      }
+      // if prefix name will be
+      let name = prefixOrSuffix === 0 ? adjective + " " + item : item + " of the " + adjective;
+      console.log(name);
+    },
     calculateModifier(abilityScore) {
       return Math.floor((abilityScore - 10) / 2);
     },
@@ -539,26 +570,27 @@ displayResource(resource) {
       }
     },
     // item = payload characterID = unique ID of the character in the database, typeString = "item" or "attack" for roll processing.
-    async  useConsumable(item, characterID, typeString) {
+    async  useConsumable(sheetItem, characterID, typeString) {
 
 // when a player clicks "Consume on the relevent item in the character sheet, this function is called."
    // first it needs to update the quantity of the item in the database. (this is done by the API)
       // we also need to allow for a diceRoll in talespire.
       // get first part of .consume (before comma)
-      console.log(item);
-      if (item.attributes.hasRoll == true) {
-      let string = { "name": item.name, "roll": item.attributes.consume};
+      console.log("Using consumable:")
+      console.log(sheetItem);
+      if (sheetItem.item.attributes.hasRoll == true) {
+      let string = { "name": sheetItem.item.name, "roll": sheetItem.item.attributes.consume};
       dice = await TS.dice.putDiceInTray([string]);
       // put the item data and the dice roll into a string and add it to the rollData array
       // this will be used in the rollDice function to roll the dice.
-      this.rollData.push({"character_id": characterID,"item": item, "rollID": dice, "type": typeString});
+      this.rollData.push({"character_id": characterID,"item": sheetItem, "rollID": dice, "type": typeString});
       }
       else {
         // If the potion doesn't require a roll of the dice then we need to look at the item attributes and see what it does.
-        switch(item.attributes.type) {
+        switch(sheetItem.item.attributes.type) {
             case "buff": {
               // If the item is a buff, then we need to get the "buff_id" and do a lookup in the buffs table via the API.
-              let buff = await getBuff(item.attributes.buff_id);
+              let buff = await getBuff(sheetItem.item.attributes.buff_id);
               // buffs will have X keys, but will either be the name of a field in the character sheet, or a "meta" key which functions as a description.
               // we need to loop through the keys and if the key is a field in the character sheet, then we need to update the character sheet via the API
               // if the key is "meta" then we need to add the value to the meta array in the character sheet.
@@ -575,13 +607,13 @@ displayResource(resource) {
                 }
               }
               let character = VueApp.characters.find(character => character.id == characterID);
-              VueApp.updateMessage = item.name + " was consumed by "  + character.name;
+              VueApp.updateMessage = sheetItem.item.name + " was consumed by "  + character.name;
             }
 
 
         }
         // deduct the consumable
-        await deductItemFromPlayerSheet(item.id, characterID, item.sheet_items.id);
+        await deductItemFromPlayerSheet(sheetItem.id);
 
       }
 },
@@ -621,7 +653,8 @@ async unEquipItem(characterID, itemID) {
   // The item will have an attribute of "buff_id" which will be the id of the buff in the buffs table.
   // we need to remove the buff from the character sheet.
   let character = VueApp.characters.find(character => character.id == characterID);
-  let item = character.sheet.sheetsItems.value.find(item => item.item_id == itemID);
+  let item = character.sheet.sheetsItems.value.find(item => item.id == itemID);
+  console.log(item);
   await removeBuffFromCharacterSheet(characterID, item.item.attributes.buff_id);
   VueApp.refreshCreatures();
 },
@@ -660,7 +693,7 @@ async makeAttackRoll(characterID, item, typeString) {
 async makeDamageRoll(characterID, item, typeString) {
 
   // calculate the amount of dice to roll.
-  let string = { "name": "Damage with " + item.name, "roll": item.attributes.damage };
+  let string = { "name": "Damage with " + item.item.name, "roll": item.item.attributes.damage };
   dice = await TS.dice.putDiceInTray([string]);
   this.rollData.push({"character_id": characterID,"item": item, "rollID": dice, "type": typeString});
 
@@ -740,9 +773,15 @@ async filterSheetItems(characters) {
 
       },
       openMenu(itemId) {
-      // clear the openMenus object
+      // if the menu that is clicked is already open, then close it.
+      if (this.openMenus[itemId] == true) {
+        this.openMenus[itemId] = false;
+        return;
+      }
+      else {
       this.openMenus = {};
       this.$set(this.openMenus, itemId, !this.openMenus[itemId]);
+      }
     },
 
       

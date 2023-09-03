@@ -131,9 +131,10 @@ async function addItemToPlayerSheet(itemID, CharacterID) {
 
 }
 
-async function deductItemFromPlayerSheet(itemID, CharacterID, sheetItemID) {
+async function deductItemFromPlayerSheet(sheetItemID) {
 
-  var response = await fetch(`http://localhost:3000/Characters/${CharacterID}/Items/${itemID}/deduct/${sheetItemID}`, {
+  console.log("ID of item: " + sheetItemID)
+  var response = await fetch(`http://localhost:3000/Characters/deduct/${sheetItemID}`, {
     method: 'POST', // Use 'PUT' if updating instead of creating
     headers: {
       'Content-Type': 'application/json'
@@ -222,22 +223,22 @@ async function handleRollResult(rollEvent) {
         // if it is a consumable
         if (data[0].type == "item") {
           // determine the attribute type
-          switch(data[0].item.attributes.type) {
+          switch(data[0].item.item.attributes.type) {
             case "heal":
-              let bonusHealing = data[0].item.attributes.bonus;
+              let bonusHealing = data[0].item.item.attributes.bonus;
               let totalHealing = parseInt(total) + parseInt(bonusHealing);
               // add the total healing to the character sheet via the API and deduct the item from the character sheet.
               // we need to get the character sheet ID from the roll data.
               let characterID = data[0].character_id;
               let itemID = data[0].item.id;
               // add the item to the character sheet
-              await deductItemFromPlayerSheet(itemID, characterID, 1);
+              await deductItemFromPlayerSheet(itemID);
               // add the healing to the character sheet
               totalHealing = { "healing": totalHealing };
               await updateCharacterSheet(characterID, totalHealing);
               // find the character by characterID and get the name:
               let character = VueApp.characters.find(character => character.id == characterID);
-              VueApp.updateMessage = data[0].item.name + " healed "  + character.name + " for " + totalHealing.healing + " hit points.";
+              VueApp.updateMessage = data[0].item.item.name + " healed "  + character.name + " for " + totalHealing.healing + " hit points.";
               break;
             case "speed":
               break;
@@ -285,27 +286,35 @@ async function handleRollResult(rollEvent) {
           
         }
         else if (data[0].type == "damage") {
-
+          let characterID = data[0].character_id;
+          let character = VueApp.characters.find(character => character.id == characterID);
           let modifier = 0;
           // if weapon is melee or ranged via .attributes.category
-          if (data[0].item.attributes.category == "melee") {
+          if (data[0].item.item.attributes.category == "melee") {
               // set modifer to strength, we need to use the DND algorithm to determine the + or - to the roll.
               modifier = VueApp.calculateModifier(character.sheet.strength.value);
+             
 
           }
-          else if (data[0].item.attributes.category == "ranged") {
+          else if (data[0].item.item.attributes.category == "ranged") {
               // set modifier to dexterity
               modifier =  parseInt(VueApp.calculateModifier(character.sheet.dexterity.value));
 
           }
           // then check if it is finesse
-          if (data[0].item.attributes.isFinesse == true) {
+          if (data[0].item.item.attributes.isFinesse == true) {
             // in theory we should let the player choose between strength and dexterity, but for now we will just use dexterity.
             modifier =  parseInt(VueApp.calculateModifier(character.sheet.dexterity.value));
           }
+           // if its in the offhand, and the player doesn't have "fighting style two weapon fighting" then we need to set the modifier to 0 if it is positive.
+           if (data[0].item.slot == "offHand") {
+            if (modifier > 0) {
+              modifier = 0;
+            }
+          }
           
 
-            let roll = data[0].item.name + " hit for " + (parseInt(total) + parseInt(modifier)) + " hit points.";
+            let roll = data[0].item.item.name + " hit for " + (parseInt(total) + parseInt(modifier)) + " hit points.";
             await TS.chat.send(roll, "board");
 
             
