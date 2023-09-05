@@ -216,6 +216,7 @@ async function handleRollResult(rollEvent) {
 
     }
     let data = VueApp.rollData;
+    console.log("Data for roll:")
     console.log(data);
     if (rollEvent.payload.rollId == data[0].rollID) {
         //if the roll event matches the roll id of the roll we are waiting for, we can process the result.
@@ -321,6 +322,33 @@ async function handleRollResult(rollEvent) {
 
 
         }
+        else if (data[0].type == "range_spell_attack") {
+          // determine characters class 
+          let characterID = data[0].character_id;
+          let character = VueApp.characters.find(character => character.id == characterID);
+          let classID = character.sheet.class.value;
+          switch(classID) {
+            case "Wizard" || "Artificer" || "Fighter" || "Rogue":
+              modifier =  parseInt(VueApp.calculateModifier(character.sheet.intelligence.value));
+              break;
+            case "Cleric" || "Druid" || "Ranger" || "Monk":
+              modifier =  parseInt(VueApp.calculateModifier(character.sheet.wisdom.value));
+              break;
+            case "Bard" || "Sorcerer" || "Warlock" || "Paladin":
+              modifier =  parseInt(VueApp.calculateModifier(character.sheet.charisma.value));
+              break;
+            default:
+              modifier = 0;
+              break;
+
+          }
+          // add proficiency bonus to modifier
+          modifier += parseInt(character.sheet.prof_bonus.value);
+          let roll = "A ranged spell attack with " + data[0].item.name + "rolled " + (parseInt(total) + parseInt(modifier));
+          console.log(roll);
+          await TS.chat.send(roll, "board");
+
+      }
         else if  (data[0].type == "monsterAttack") {
           // this indicates the DM made a roll for a monster attack. this.rollData.push({"creature": DMselectedCreature.id,"bonus": attackBonus , "rollID": dice, "type": typeString});
           let hiddenFromPlayers = true; 
@@ -380,5 +408,13 @@ async function getSpellFromDB(id) {
   return data;
 
 
+
+}
+
+async function getSpellLevelAPI(id) {
+
+  var response = await fetch(`http://localhost:3000/SpellLevels/${id}`);
+  var data = await response.json();
+  return data;
 
 }

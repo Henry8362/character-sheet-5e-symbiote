@@ -121,9 +121,10 @@
                         <div class="text-white">{{ count }}x</div>
                         <div class="text-white">{{ character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)).item.name }}</div>
                         <div v-if="openMenus[itemId]" class="bg-white p-2 mt-2 rounded shadow h-24 z-0">
-                          <span v-if="character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)).item.type_id === 3" type="button" @click.prevent="useConsumable(character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)), character.id, 'item')">Use 1</span>
-                          <span v-else @click.prevent="manageItemType(character, itemId)" class=" p-1">Equip</span>
+                          <template v-if="character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)).item.type_id === 3" type="button" @click.prevent="useConsumable(character.sheet.sheetsItems.value.find(item => item.item_id === Number(itemId)), character.id, 'item')">
+                          <span>Use 1</span>
                           <hr class="bg-black border-black" />
+                        </template>
                           <span @click.prevent="manageItemType(character, itemId)" class=" p-1">Manage</span>
                           <hr class="bg-black border-black" />
 
@@ -142,7 +143,7 @@
                     <select v-model="this.selectedSlot">
                       <option v-for="(slot, key) in item.item.attributes.slots" :key="key" :value="slot">{{ slot }}</option>
                     </select>
-                    <button class="bg-green-400 rounded text-white p-1" @click.prevent="equipItem(character.id, item.id, selectedSlot)">Equip</button>
+                    <button class="bg-green-400 rounded text-white p-1" @click.prevent="equipItem(character.id, item.id, this.selectedSlot)">Equip</button>
                     </div>
                     <button v-else-if="(item.item.type_id === 1 || item.item.type_id === 2 || item.item.type_id === 4) && item.isEquipped === true" class="w-3/6 bg-green-400 text-white font-bold rounded" @click.prevent="unEquipItem(character.id, item.id)">Unequip</button>
                     <button v-else-if="item.item.type_id === 3" class="w-3/6 bg-green-400 text-white font-bold rounded" type="button" @click.prevent="useConsumable(item, character.id, 'item')">Consume</button>
@@ -157,7 +158,7 @@
                               <span>{{item.slot}}: {{ item.item.name }} | {{ item.item.attributes.damage }} {{ item.item.attributes.damage_type }}
                                 <span v-if="character.sheet.proficiencies.value.weapon.includes(item.item.attributes.weapon_type)"></span>
                               </span>
-                              <button class="bg-green-400 rounded text-white p-1" @click.prevent="makeAttackRoll(character.id, item.item, 'attack')">Attack</button>
+                              <button class="bg-green-400 rounded text-white p-1" @click.prevent="makeAttackRoll(character.id, item.item, 'attack')">To Hit</button>
                               <button class="bg-green-400 rounded text-white p-1" @click.prevent="makeDamageRoll(character.id, item, 'damage')">Damage</button>
                               
                             </div>
@@ -168,14 +169,32 @@
                       Then we need to factor in any buffs that might also provide a modifier.
                       {"slots": ["mainHand", "offHand"], "damage": "1d6", "weight": 2, "damage_type": "slashing", "weapon_type": "simple", "isEquippable": true}
                     -->
-                    <label class="w-full">Spells</label>
-                    <div v-if="character.sheet.spells.value != undefined || character.sheet.spells.value != null">
+                    <label class="w-full font-bold">Spells</label>
+                    <div class="flex flex-col" v-if="character.sheet.spells.value != undefined || character.sheet.spells.value != null">
                           <span>Cantrips known: {{ character.sheet.spells.value.cantrips_known }}</span>
                           <span>Spells known: {{ character.sheet.spells.value.spells_known }}</span>
+                          <span>Spell Slots Total:</span>
                           <div v-for="(spell_slot, key) in character.sheet.spells.value.spell_slots">
                             <span>Level {{ key }}: {{ spell_slot }}</span>
                           </div>
-                          <div v-if="character.sheet.spells.value.spell_list != undefined" v-for="(spell, key) in character.sheet.spells.value.spell_list">
+                          <span>Spell Slot Counter:</span>
+                          <div v-for="(count, key) in character.sheet.spells.value.spell_slots" :key="key" class="flex flex-col w-full">
+                            <span  class="font-bold">Level {{ key }}:</span>
+                            <div class="flex w-full">
+                            <div v-for="n in count" :key="n" :class="{ 'used-diamond': n >= character.sheet.spells.value.spell_slots_remaining[key], 'diamond': n <= character.sheet.spells.value.spell_slots_remaining[key]}">
+                            </div>
+                            </div>
+                          </div>
+              
+                          <div v-if="character.sheet.spellData != undefined || character.sheet.spellData != null  " v-for="(spell, key) in character.sheet.spellData.value" class="flex flex-col">
+                            <span><span class="font-bold">{{ spell.name }}</span><span> | {{ spell.level }}</span></span>
+                            <span>{{ spell.description }}</span>
+                            <!-- if the spell is a cantrip-->
+                            <div v-if="spell.level_id == 1">
+                              <button v-if="spell.attributes.ranged_spell_attack == true" class="bg-green-400 rounded text-white p-1" @click.prevent="makeAttackRoll(character.id, spell,'range_spell_attack')">Attack</button>
+                              <button v-else class="bg-green-400 rounded text-white p-1">Cast</button>
+                            <!-- if the player has a slot at the level of the spell or greater (up casting)-->
+                                </div>
                           </div>
                   </div>
                 </div>
@@ -387,17 +406,53 @@ function onStateChangeEvent(msg) {
         basicItems: { 
           0: "Shortsword", 1: "Shortbow", 2: "Dagger", 3: "Club", 4: "Light Mail"
 
-        }
+        },
         
+      },
+      async created() {
+
+        var mappings = await fetchMappings();
+        VueApp.mappings = mappings;
+        var skills = await fetchSkills();
+        var players = await getPlayers();
+        var blocks = await fetchBlocks();
+        VueApp.skills = skills;
+        VueApp.blocks = blocks;
+        VueApp.players = players;
+        var player = await getUser();
+        VueApp.player = player;
+        var data = await initSheet(player);
+        var creatures = await getUsersCreatures(player.id);
+        //var resources = await getUsersResources(player.id);
+        //VueApp.resources = resources;
+        VueApp.playersCreatures = creatures;
+        var items = await fetchItems();
+        VueApp.items = items;
+        await VueApp.filterSheetItems(data.characters);
+        await VueApp.getSheetSpells(data.characters);
+        await VueApp.processSheet(data.characters, VueApp.mappings)
       },
       computed: {
       filteredblocks() {
       return this.blocks.filter(block =>
         block.name.toLowerCase().includes(this.searchQuery.toLowerCase())
       );
-    }
+    },
+    spellsToShow() { } 
   },
       methods: {
+
+
+        async fetchSpellLevels(level_id) {
+        try {
+          const level = await getSpellLevelAPI(level_id);
+          return level.level;
+        } catch (error) {
+          console.error(error);
+          spellLevels.push(null);
+        }
+    
+    },
 
     generateMagicalItem() {
       // Select a random item from the basic items list, for testing though, always select "Light Mail"
@@ -468,7 +523,8 @@ function onStateChangeEvent(msg) {
       //  VueApp.resources = resources;
         VueApp.playersCreatures = creatures;
         await VueApp.filterSheetItems(data.characters);
-        processSheet(data.characters,  VueApp.mappings);
+        await VueApp.getSheetSpells(data.characters);
+        await VueApp.processSheet(data.characters,  VueApp.mappings);
 
 },
 async createSheet(creatureID) {
@@ -620,29 +676,31 @@ displayResource(resource) {
 async removeBuff(characterID, buffID) {
 
   await removeBuffFromCharacterSheet(characterID, buffID);
-  VueApp.refreshCreatures();
+  await VueApp.refreshCreatures();
 
 },
 async addBuff(characterID, buffID) {
   // this function will add a buff to the character sheet, and then refresh the character sheet.
   await addBuffToCharacterSheet(characterID, buffID);
-  VueApp.refreshCreatures();
+  await VueApp.refreshCreatures();
 },
 async equipItem(characterID, itemID, slot) {
   await equipItemToCharacterSheet(characterID, itemID, slot);
  // we need to get the buff/s from the item and add them to the character sheet.
       // from the itemID we need to get the item from the items array.
-  let itemFromDB = await getItem(itemID);
+  //let itemFromDB = await getItem(itemID);
   // we need to get the buff/s from the item and add them to the character sheet.
-  if(itemFromDB.attributes.buff_id != null) {
+  //if(itemFromDB.attributes.buff_id != null) {
     // if the item has a buff_id, then we need to add the buff to the character sheet.
-    let buff = await VueApp.addBuff(characterID, itemFromDB.attributes.buff_id);
-  }
-  console.log("Refreshing after equip")
-  // not working here for some reason
-  VueApp.refreshCreatures();
-  manageItemType(characterID, itemID)
-  VueApp.updateMessage = VueApp.characters.find(character => character.id == characterID).name + " equipped " + itemFromDB.name + " as their " + slot + ".";
+   // let buff = await VueApp.addBuff(characterID, itemFromDB.attributes.buff_id);
+ // }
+  // wait 5 seconds then refresh the character sheet.
+  await VueApp.refreshCreatures();
+  
+  
+  
+  //manageItemType(characterID, itemID)
+  //VueApp.updateMessage = VueApp.characters.find(character => character.id == characterID).name + " equipped " + itemFromDB.name + " as their " + slot + ".";
   
 
 },
@@ -656,7 +714,7 @@ async unEquipItem(characterID, itemID) {
   let item = character.sheet.sheetsItems.value.find(item => item.id == itemID);
   console.log(item);
   await removeBuffFromCharacterSheet(characterID, item.item.attributes.buff_id);
-  VueApp.refreshCreatures();
+  await VueApp.refreshCreatures();
 },
 getEquippedItemForBuff(characterID, buffID) {
   // this will return true if the character has the item equipped that is required for the buff, it means an item being equip is causing the buff and the item needs to be unqeuipped to remove it.
@@ -751,6 +809,41 @@ async filterSheetItems(characters) {
       }
 });
       },
+async getSheetSpells(characters) {
+
+  await characters.forEach(function (character, index) {
+      if ( character.sheet != null) {
+        character.sheet.spellData = {};
+        if (character.sheet.spells != null) {
+        // if the character has spells, then we need to get the spells from the spell character.sheet.spells.value.spell_list and add them to the character.sheet.spellData object. we have a getSpell function we can call for each one.
+        if (character.sheet.spells != undefined || character.sheet.spells != null) {
+        character.sheet.spells.spell_list.forEach(async function (spell, index) {
+            // get the spell from the API
+            let spellFromDB = await VueApp.getSpell(spell);
+            // add the spell to the character.sheet.spellData object.
+            character.sheet.spellData.value[index] = spellFromDB;
+            // add the spell level to the character.sheet.spellData object.
+            let level = await VueApp.fetchSpellLevels(character.sheet.spellData.value[index].id);
+            character.sheet.spellData.value[index].level = level;
+        });
+      }
+    }
+      
+      
+      
+      
+      
+      
+      }
+
+
+
+
+
+  })
+
+
+},
       async getItemFromApi(id) {
 
         let item = await getItem(id);
@@ -783,6 +876,73 @@ async filterSheetItems(characters) {
       this.$set(this.openMenus, itemId, !this.openMenus[itemId]);
       }
     },
+
+    
+    async processSheet(data, mappings) {
+
+// This function will go through each data.characters.sheets and map the keys to the correct type, for logic in vue JS, e.g. if the key is "class" then the type is "B", for "Basic" and so on.
+// This will allow us to use the same logic for each sheet, and not have to worry about the type of sheet we are dealing with.
+// we will edit the data.characters.sheets object in place, and return it.
+// for each character data[x]
+data.forEach(function (character, index) {
+// First we need to get the keys of the data.characters.sheets object, and then we can loop through them.
+if(character.picture && character.picture.data) {
+var image = new Blob([new Uint8Array(character.picture.data)]);
+data[index].picture = URL.createObjectURL(image);
+};  
+// if character has a sheet object exists
+if (character.sheet != null) {
+character.sheet.managedItems = {};
+var keys = Object.keys(character.sheet);
+for (var i = 0; i < keys.length; i++) {
+    // Now we have the keys, we can loop through them and check the mappings object to see what type of key it is.
+    var key = keys[i];
+    // we need to match this key to the mappings object, and get the type, this is not the index of the mappings array, but we need to exclude the "skills key"
+    var type = mappings.find((element) => element.sheets_field_name == key);
+    if (type == undefined) {
+    // if the type is undefined, then we need to add a field_type of "U" for "Unknown"
+    type = "U";
+    }
+    else {
+    type = type.field_type;
+    }
+    // now we need to add in the type to the data.characters.sheets object.
+    data[index].sheet[key] = {
+    type: type,
+    value: character.sheet[key],
+    };
+}
+if (character.sheet.sheetsItems != null) {
+// here we get a count of all the same items in the items array, and add a count object for each item.
+character.sheet.sheetsItems.value.forEach(function (item, index) {
+    // if shees_items.is_equipped == true AND has a an attributes.type of "buff" then we need to add the buffs to the character sheet
+    if (item.isEquipped == true && item.item.attributes.type == "buff") {
+    // if a buff exists in character sheet for this equip item, do nothing, else add the buff to the character sheet.
+    if(character.sheet.buffs.value.find((element) => element.id == item.item.attributes.buff_id)) {
+        // do nothing
+
+    }
+    else {
+        // addBuffToCharacterSheet
+        let addBuff = addBuffToCharacterSheet(character.id, item.item.attributes.buff_id);
+
+
+
+    }
+
+
+    }
+});
+}
+}
+});
+// push data into vue app.
+VueApp.characters = data;
+console.log(VueApp.characters)
+// set activeSheet to be the ID of the first character in the array.
+VueApp.activeSheet = data[0].id;
+console.log("Finished processing sheet");
+}
 
       
 
@@ -818,99 +978,6 @@ async filterSheetItems(characters) {
     function UpdateSheet(id) {
     
     }
-
-
-
-    function processSheet(data, mappings) {
-
-        // This function will go through each data.characters.sheets and map the keys to the correct type, for logic in vue JS, e.g. if the key is "class" then the type is "B", for "Basic" and so on.
-        // This will allow us to use the same logic for each sheet, and not have to worry about the type of sheet we are dealing with.
-        // we will edit the data.characters.sheets object in place, and return it.
-        // for each character data[x]
-        data.forEach(function (character, index) {
-        // First we need to get the keys of the data.characters.sheets object, and then we can loop through them.
-        if(character.picture && character.picture.data) {
-        var image = new Blob([new Uint8Array(character.picture.data)]);
-        data[index].picture = URL.createObjectURL(image);
-        };  
-      // if character has a sheet object exists
-        if (character.sheet != null) {
-        character.sheet.managedItems = {};
-        var keys = Object.keys(character.sheet);
-        for (var i = 0; i < keys.length; i++) {
-            // Now we have the keys, we can loop through them and check the mappings object to see what type of key it is.
-            var key = keys[i];
-            // we need to match this key to the mappings object, and get the type, this is not the index of the mappings array, but we need to exclude the "skills key"
-            var type = mappings.find((element) => element.sheets_field_name == key);
-            if (type == undefined) {
-            // if the type is undefined, then we need to add a field_type of "U" for "Unknown"
-            type = "U";
-            }
-            else {
-            type = type.field_type;
-            }
-            // now we need to add in the type to the data.characters.sheets object.
-            data[index].sheet[key] = {
-            type: type,
-            value: character.sheet[key],
-            };
-        }
-        if (character.sheet.sheetsItems != null) {
-        // here we get a count of all the same items in the items array, and add a count object for each item.
-        character.sheet.sheetsItems.value.forEach(function (item, index) {
-            // if shees_items.is_equipped == true AND has a an attributes.type of "buff" then we need to add the buffs to the character sheet
-            if (item.isEquipped == true && item.item.attributes.type == "buff") {
-            // if a buff exists in character sheet for this equip item, do nothing, else add the buff to the character sheet.
-            if(character.sheet.buffs.value.find((element) => element.id == item.item.attributes.buff_id)) {
-                // do nothing
-
-            }
-            else {
-                // addBuffToCharacterSheet
-                let addBuff = addBuffToCharacterSheet(character.id, item.item.attributes.buff_id);
-
-
-
-            }
- 
-
-            }
-        });
-      }
-      }
-    });
-    // push data into vue app.
-    VueApp.characters = data;
-    console.log("Characters:")
-    console.log(VueApp.characters)
-    // set activeSheet to be the ID of the first character in the array.
-    VueApp.activeSheet = data[0].id;
-    console.log("Finished processing sheet");
-    };
-
-    async function main() {
-
-        var mappings = await fetchMappings();
-        VueApp.mappings = mappings;
-        var skills = await fetchSkills();
-        var players = await getPlayers();
-        var blocks = await fetchBlocks();
-        VueApp.skills = skills;
-        VueApp.blocks = blocks;
-        VueApp.players = players;
-        var player = await getUser();
-        VueApp.player = player;
-        var data = await initSheet(player);
-        var creatures = await getUsersCreatures(player.id);
-        //var resources = await getUsersResources(player.id);
-        //VueApp.resources = resources;
-        VueApp.playersCreatures = creatures;
-        var items = await fetchItems();
-        VueApp.items = items;
-        await VueApp.filterSheetItems(data.characters);
-        processSheet(data.characters, mappings);
-      }
-    main();
     
 </script>
 <style>
@@ -980,5 +1047,50 @@ async filterSheetItems(characters) {
     font-weight: initial;
   }
 
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px 0 blue; /* Initial shadow */
+  }
+  100% {
+    box-shadow: 0 0 20px 5px blue; /* Glowing shadow */
+  }
+}
+
+.used-diamond {
+
+  width: 20px;
+  height: 20px;
+  background-color: black;
+  margin-top: 2px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+
+
+
+}
+
+.diamond {
+  width: 20px;
+  height: 20px;
+  background-color: blue;
+  margin-top: 2px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  animation: pulse 2s infinite alternate; /* Add the glow animation */
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 10px 5px blue;
+  }
+  50% {
+    transform: scale(1.1); /* Scale up slightly at 50% of the animation */
+    box-shadow: 0 0 15px 7px blue; /* Increase the shadow size */
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 10px 5px blue;
+  }
 }
 </style>
